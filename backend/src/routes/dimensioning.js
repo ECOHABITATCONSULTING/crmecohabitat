@@ -253,16 +253,15 @@ async function generatePDF(noteId, client, data, calculations) {
       // ========================================
       // EN-TÊTE AVEC LOGO ET INFOS SOCIÉTÉ
       // ========================================
-      const logoPath = path.join(__dirname, '../../assets/logo.png');
+      const logoPath = path.join(__dirname, '../../assets/logo-ehc.jpg');
       const startY = doc.y;
 
       // Logo à gauche (si existe)
       if (fs.existsSync(logoPath)) {
         try {
           doc.image(logoPath, 50, startY, {
-            width: 120,
-            height: 80,
-            fit: [120, 80]
+            width: 100,
+            fit: [100, 70]
           });
         } catch (err) {
           console.log('Erreur chargement logo:', err);
@@ -271,27 +270,25 @@ async function generatePDF(noteId, client, data, calculations) {
 
       // Informations société à droite
       const companyInfo = {
-        name: 'FRANCE ECO ENERGIE',
-        address: 'Adresse de la société', // À remplacer
-        postalCode: 'Code postal', // À remplacer
-        city: 'Ville', // À remplacer
-        phone: 'Téléphone', // À remplacer
-        email: 'contact@france-eco-energie.fr', // À remplacer
-        siret: 'SIRET: XXXXX' // À remplacer
+        name: 'Eco Habitat Consulting',
+        address: '42 Chemin Moulin Carron',
+        postalCode: '69130',
+        city: 'Ecully',
+        phone: '04 51 68 09 45',
+        email: 'etude@consulting-ehc.fr'
       };
 
-      doc.fontSize(12).fillColor('#059669').font('Helvetica-Bold')
+      doc.fontSize(12).fillColor('#d97706').font('Helvetica-Bold')
         .text(companyInfo.name, 320, startY, { align: 'right' });
       doc.fontSize(9).fillColor('#333').font('Helvetica')
         .text(companyInfo.address, 320, doc.y + 5, { align: 'right' })
         .text(`${companyInfo.postalCode} ${companyInfo.city}`, { align: 'right' })
         .text(`Tél: ${companyInfo.phone}`, { align: 'right' })
-        .text(`Email: ${companyInfo.email}`, { align: 'right' })
-        .text(companyInfo.siret, { align: 'right' });
+        .text(`Email: ${companyInfo.email}`, { align: 'right' });
 
       // Ligne de séparation
-      doc.moveTo(50, startY + 95).lineTo(545, startY + 95).stroke('#10b981');
-      doc.moveDown(1);
+      doc.moveTo(50, startY + 90).lineTo(545, startY + 90).stroke('#10b981');
+      doc.moveDown(1.5);
 
       // Titre du document
       doc.fontSize(20).fillColor('#059669').font('Helvetica-Bold')
