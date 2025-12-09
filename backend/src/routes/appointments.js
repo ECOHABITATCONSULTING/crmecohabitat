@@ -7,31 +7,53 @@ const router = express.Router();
 // Récupérer les RDV d'un utilisateur
 router.get('/', authenticateToken, (req, res) => {
   try {
-    const { date } = req.query;
+    const { date, user_id, commercial_id, filter_mode } = req.query;
     let query = `
       SELECT
         appointments.*,
         COALESCE(leads.first_name, clients.first_name) as first_name,
         COALESCE(leads.last_name, clients.last_name) as last_name,
-        users.username
+        COALESCE(leads.postal_code, clients.postal_code) as postal_code,
+        users.username,
+        commerciaux.name as commercial_name,
+        commerciaux.color as commercial_color
       FROM appointments
       LEFT JOIN leads ON appointments.lead_id = leads.id
       LEFT JOIN clients ON appointments.client_id = clients.id
       JOIN users ON appointments.user_id = users.id
+      LEFT JOIN commerciaux ON appointments.commercial_id = commerciaux.id
       WHERE 1=1
     `;
     let params = [];
 
-    // Si agent, voir seulement ses RDV
-    if (req.user.role === 'agent') {
-      query += ' AND appointments.user_id = ?';
-      params.push(req.user.id);
-    }
+    // PHASE 2.2 - Les agents voient TOUS les RDV (plus de filtre automatique)
+    // Mais on garde les filtres manuels ci-dessous
 
     // Filtrer par date si fournie
     if (date) {
       query += ' AND appointments.date = ?';
       params.push(date);
+    }
+
+    // Filtres par user_id et/ou commercial_id
+    if (user_id || commercial_id) {
+      const mode = filter_mode === 'OR' ? 'OR' : 'AND';
+
+      if (user_id && commercial_id) {
+        if (mode === 'AND') {
+          query += ' AND appointments.user_id = ? AND appointments.commercial_id = ?';
+          params.push(user_id, commercial_id);
+        } else {
+          query += ' AND (appointments.user_id = ? OR appointments.commercial_id = ?)';
+          params.push(user_id, commercial_id);
+        }
+      } else if (user_id) {
+        query += ' AND appointments.user_id = ?';
+        params.push(user_id);
+      } else if (commercial_id) {
+        query += ' AND appointments.commercial_id = ?';
+        params.push(commercial_id);
+      }
     }
 
     query += ' ORDER BY date, time';
@@ -65,7 +87,7 @@ router.get('/lead/:leadId', authenticateToken, (req, res) => {
 // Créer un RDV
 router.post('/', authenticateToken, (req, res) => {
   try {
-    const { lead_id, client_id, title, date, time } = req.body;
+    const { lead_id, client_id, title, date, time, commercial_id } = req.body;
 
     if ((!lead_id && !client_id) || !title || !date || !time) {
       return res.status(400).json({ error: 'Données manquantes' });
@@ -74,13 +96,14 @@ router.post('/', authenticateToken, (req, res) => {
     // Un agent ne peut créer des RDV que pour lui-même
     const user_id = req.user.role === 'admin' && req.body.user_id ? req.body.user_id : req.user.id;
 
-    const result = db.prepare('INSERT INTO appointments (lead_id, client_id, user_id, title, date, time) VALUES (?, ?, ?, ?, ?, ?)').run(
+    const result = db.prepare('INSERT INTO appointments (lead_id, client_id, user_id, title, date, time, commercial_id) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
       lead_id || null,
       client_id || null,
       user_id,
       title,
       date,
-      time
+      time,
+      commercial_id || null
     );
 
     const appointment = db.prepare(`
@@ -88,11 +111,15 @@ router.post('/', authenticateToken, (req, res) => {
         appointments.*,
         COALESCE(leads.first_name, clients.first_name) as first_name,
         COALESCE(leads.last_name, clients.last_name) as last_name,
-        users.username
+        COALESCE(leads.postal_code, clients.postal_code) as postal_code,
+        users.username,
+        commerciaux.name as commercial_name,
+        commerciaux.color as commercial_color
       FROM appointments
       LEFT JOIN leads ON appointments.lead_id = leads.id
       LEFT JOIN clients ON appointments.client_id = clients.id
       JOIN users ON appointments.user_id = users.id
+      LEFT JOIN commerciaux ON appointments.commercial_id = commerciaux.id
       WHERE appointments.id = ?
     `).get(result.lastInsertRowid);
 
@@ -106,14 +133,26 @@ router.post('/', authenticateToken, (req, res) => {
 router.patch('/:id', authenticateToken, (req, res) => {
   try {
     const { id } = req.params;
-    const { title, date, time } = req.body;
+    const { title, date, time, commercial_id } = req.body;
+
+    // PHASE 2.3 - Vérifier les permissions pour les agents
+    if (req.user.role === 'agent') {
+      const appointment = db.prepare('SELECT user_id FROM appointments WHERE id = ?').get(id);
+      if (!appointment) {
+        return res.status(404).json({ error: 'Rendez-vous introuvable' });
+      }
+      if (appointment.user_id !== req.user.id) {
+        return res.status(403).json({ error: 'Vous ne pouvez modifier que vos propres rendez-vous' });
+      }
+    }
 
     const updates = [];
     const params = [];
 
-    if (title) { updates.push('title = ?'); params.push(title); }
-    if (date) { updates.push('date = ?'); params.push(date); }
-    if (time) { updates.push('time = ?'); params.push(time); }
+    if (title !== undefined) { updates.push('title = ?'); params.push(title); }
+    if (date !== undefined) { updates.push('date = ?'); params.push(date); }
+    if (time !== undefined) { updates.push('time = ?'); params.push(time); }
+    if (commercial_id !== undefined) { updates.push('commercial_id = ?'); params.push(commercial_id || null); }
 
     if (updates.length === 0) {
       return res.status(400).json({ error: 'Aucune donnée à mettre à jour' });
@@ -123,9 +162,19 @@ router.patch('/:id', authenticateToken, (req, res) => {
     db.prepare(`UPDATE appointments SET ${updates.join(', ')} WHERE id = ?`).run(...params);
 
     const appointment = db.prepare(`
-      SELECT appointments.*, users.username
+      SELECT
+        appointments.*,
+        COALESCE(leads.first_name, clients.first_name) as first_name,
+        COALESCE(leads.last_name, clients.last_name) as last_name,
+        COALESCE(leads.postal_code, clients.postal_code) as postal_code,
+        users.username,
+        commerciaux.name as commercial_name,
+        commerciaux.color as commercial_color
       FROM appointments
+      LEFT JOIN leads ON appointments.lead_id = leads.id
+      LEFT JOIN clients ON appointments.client_id = clients.id
       JOIN users ON appointments.user_id = users.id
+      LEFT JOIN commerciaux ON appointments.commercial_id = commerciaux.id
       WHERE appointments.id = ?
     `).get(id);
 

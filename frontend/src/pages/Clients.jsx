@@ -9,6 +9,7 @@ const CLIENT_STATUSES = [
   { value: '', label: 'Tous', color: '#6366f1' },
   { value: 'nouveau', label: 'Nouveau', color: '#10b981' },
   { value: 'mail_envoye', label: 'Mail envoyé', color: '#3b82f6' },
+  { value: 'rdv_pris', label: 'RDV pris', color: '#f59e0b' }, // PHASE 3.12
   { value: 'documents_recus', label: 'Documents reçus', color: '#8b5cf6' },
   { value: 'annule', label: 'Annulé', color: '#ef4444' },
 ];

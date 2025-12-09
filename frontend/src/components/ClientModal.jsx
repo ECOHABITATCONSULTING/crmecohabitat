@@ -27,6 +27,7 @@ const ClientModal = ({ client, onClose }) => {
     landline_phone: client.landline_phone || '',
     mobile_phone: client.mobile_phone || '',
     mail_sent: client.mail_sent || false,
+    rdv_pris: client.rdv_pris || false, // PHASE 3.9
     document_received: client.document_received || false,
     cancelled: client.cancelled || false
   });
@@ -48,8 +49,11 @@ const ClientModal = ({ client, onClose }) => {
 
   const fetchAppointments = async () => {
     try {
-      const response = await api.get(`/clients/${client.id}/appointments`);
-      setAppointments(response.data);
+      // PHASE 3.9 - Utiliser la route unifiée /appointments avec filtre client_id
+      const response = await api.get(`/appointments`);
+      // Filtrer côté client pour ce client spécifique
+      const clientAppointments = response.data.filter(apt => apt.client_id === client.id);
+      setAppointments(clientAppointments);
     } catch (error) {
       console.error('Erreur lors du chargement des RDV:', error);
     }
@@ -75,8 +79,10 @@ const ClientModal = ({ client, onClose }) => {
     if (!newAppointment.title || !newAppointment.date || !newAppointment.time) return;
 
     try {
-      await api.post(`/clients/${client.id}/appointments`, {
-        ...newAppointment
+      // PHASE 3.9 - Utiliser la route unifiée /appointments
+      await api.post(`/appointments`, {
+        ...newAppointment,
+        client_id: client.id
       });
       setNewAppointment({ title: '', date: '', time: '' });
       fetchAppointments();
@@ -330,6 +336,15 @@ const ClientModal = ({ client, onClose }) => {
                   </label>
 
                   <label
+                    className={`${styles.trackingLabel} ${clientInfo.rdv_pris ? styles.checked : ''}`}
+                    onClick={() => handleTrackingChange('rdv_pris')}
+                  >
+                    <Calendar size={18} />
+                    <span>RDV pris</span>
+                    {clientInfo.rdv_pris && <CheckCircle size={16} className={styles.checkIcon} />}
+                  </label>
+
+                  <label
                     className={`${styles.trackingLabel} ${clientInfo.document_received ? styles.checked : ''}`}
                     onClick={() => handleTrackingChange('document_received')}
                   >
@@ -368,6 +383,7 @@ const ClientModal = ({ client, onClose }) => {
                         landline_phone: client.landline_phone || '',
                         mobile_phone: client.mobile_phone || '',
                         mail_sent: client.mail_sent || false,
+                        rdv_pris: client.rdv_pris || false, // PHASE 3.9
                         document_received: client.document_received || false,
                         cancelled: client.cancelled || false
                       });

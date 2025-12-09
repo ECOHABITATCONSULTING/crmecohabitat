@@ -151,6 +151,39 @@ trackingColumns.forEach(col => {
   }
 });
 
+// PHASE 1.1 - Migration - Ajouter colonnes manquantes aux leads
+const leadsColumns = [
+  { name: 'postal_code', type: 'TEXT' },
+  { name: 'city', type: 'TEXT' },
+  { name: 'country', type: 'TEXT' },
+  { name: 'mobile_phone', type: 'TEXT' },
+  { name: 'address', type: 'TEXT' }
+];
+
+leadsColumns.forEach(col => {
+  try {
+    db.prepare(`ALTER TABLE leads ADD COLUMN ${col.name} ${col.type}`).run();
+    console.log(`✓ Colonne ${col.name} ajoutée à la table leads`);
+  } catch (e) {
+    // Colonne existe déjà
+  }
+});
+
+// PHASE 1.4 - Migration - Ajouter tracking "RDV pris" aux clients
+const rdvPrisColumns = [
+  { name: 'rdv_pris', type: 'INTEGER DEFAULT 0' },
+  { name: 'rdv_pris_date', type: 'TEXT' }
+];
+
+rdvPrisColumns.forEach(col => {
+  try {
+    db.prepare(`ALTER TABLE clients ADD COLUMN ${col.name} ${col.type}`).run();
+    console.log(`✓ Colonne ${col.name} ajoutée à la table clients`);
+  } catch (e) {
+    // Colonne existe déjà
+  }
+});
+
 // Créer un utilisateur admin par défaut si aucun utilisateur n'existe
 const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get();
 if (userCount.count === 0) {
@@ -225,5 +258,61 @@ db.exec(`
 `);
 
 console.log('✓ Tables de dimensionnement créées');
+
+// PHASE 1.2 - Table commerciaux
+db.exec(`
+  CREATE TABLE IF NOT EXISTS commerciaux (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    color TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_commerciaux_name ON commerciaux(name);
+`);
+console.log('✓ Table commerciaux créée');
+
+// PHASE 1.3 - Migration - Ajouter commercial_id aux appointments
+try {
+  db.prepare('ALTER TABLE appointments ADD COLUMN commercial_id INTEGER REFERENCES commerciaux(id)').run();
+  console.log('✓ Colonne commercial_id ajoutée à la table appointments');
+} catch (e) {
+  // Colonne existe déjà
+}
+
+try {
+  db.prepare('ALTER TABLE client_appointments ADD COLUMN commercial_id INTEGER REFERENCES commerciaux(id)').run();
+  console.log('✓ Colonne commercial_id ajoutée à la table client_appointments');
+} catch (e) {
+  // Colonne existe déjà
+}
+
+// PHASE 1.5 - Migration - Consolider les tables d'appointments
+// Migrer les données de client_appointments vers appointments si la table existe et contient des données
+try {
+  const clientAppointmentsCount = db.prepare('SELECT COUNT(*) as count FROM client_appointments').get();
+
+  if (clientAppointmentsCount && clientAppointmentsCount.count > 0) {
+    console.log(`🔄 Migration de ${clientAppointmentsCount.count} rendez-vous clients vers la table appointments...`);
+
+    // Copier les données
+    db.prepare(`
+      INSERT INTO appointments (client_id, user_id, title, date, time, commercial_id, created_at)
+      SELECT client_id, user_id, title, date, time, commercial_id, created_at
+      FROM client_appointments
+      WHERE client_id IS NOT NULL
+    `).run();
+
+    console.log('✓ Rendez-vous clients migrés avec succès');
+
+    // Ne pas supprimer la table immédiatement pour éviter la perte de données
+    // Elle sera supprimée manuellement après vérification
+    console.log('⚠️  Table client_appointments conservée pour vérification. Supprimez-la manuellement après validation.');
+  } else {
+    console.log('✓ Aucun rendez-vous client à migrer');
+  }
+} catch (e) {
+  console.log('ℹ️  Migration appointments déjà effectuée ou table client_appointments vide:', e.message);
+}
 
 module.exports = db;

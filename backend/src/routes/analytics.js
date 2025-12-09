@@ -65,12 +65,14 @@ router.get('/', authenticateToken, (req, res) => {
     const totalClients = db.prepare(`SELECT COUNT(*) as count FROM clients ${whereClause}`).get(...params).count;
     const totalLeads = db.prepare(`SELECT COUNT(*) as count FROM leads ${whereClause}`).get(...params).count;
 
-    // Tracking statistics with date filtering
+    // PHASE 2.7 - Tracking statistics with date filtering (ajout rdv_pris)
     const mailSentFilter = whereClause ? `${whereClause} AND mail_sent = 1` : 'WHERE mail_sent = 1';
+    const rdvPrisFilter = whereClause ? `${whereClause} AND rdv_pris = 1` : 'WHERE rdv_pris = 1';
     const docReceivedFilter = whereClause ? `${whereClause} AND document_received = 1` : 'WHERE document_received = 1';
     const cancelledFilter = whereClause ? `${whereClause} AND cancelled = 1` : 'WHERE cancelled = 1';
 
     const mailSent = db.prepare(`SELECT COUNT(*) as count FROM clients ${mailSentFilter}`).get(...params).count;
+    const rdvPris = db.prepare(`SELECT COUNT(*) as count FROM clients ${rdvPrisFilter}`).get(...params).count;
     const documentReceived = db.prepare(`SELECT COUNT(*) as count FROM clients ${docReceivedFilter}`).get(...params).count;
     const cancelled = db.prepare(`SELECT COUNT(*) as count FROM clients ${cancelledFilter}`).get(...params).count;
 
@@ -91,17 +93,18 @@ router.get('/', authenticateToken, (req, res) => {
       GROUP BY status
     `).all(...agentParams);
 
-    // Tracking progression (funnel)
+    // PHASE 2.7 - Tracking progression (funnel) - Ajout RDV pris
     const trackingData = [
       { name: 'Total Clients', value: totalClients },
       { name: 'Courrier envoyé', value: mailSent },
+      { name: 'RDV pris', value: rdvPris },
       { name: 'Document reçu', value: documentReceived },
       { name: 'Annulés', value: cancelled }
     ];
 
-    // Recent activity
+    // Recent activity (PHASE 2.7 - Ajout rdv_pris)
     const recentClients = db.prepare(`
-      SELECT id, first_name, last_name, created_at, mail_sent, document_received, cancelled
+      SELECT id, first_name, last_name, created_at, mail_sent, rdv_pris, document_received, cancelled
       FROM clients
       ${agentFilter}
       ORDER BY created_at DESC
@@ -167,12 +170,20 @@ router.get('/', authenticateToken, (req, res) => {
             WHERE assigned_to = ? AND mail_sent = 1 AND created_at <= ?
           `).get(agent.id, endOfMonth).count;
 
+          // PHASE 2.7 - Métrique 5: RDV pris (cumulatif)
+          const rdvPris = db.prepare(`
+            SELECT COUNT(*) as count
+            FROM clients
+            WHERE assigned_to = ? AND rdv_pris = 1 AND created_at <= ?
+          `).get(agent.id, endOfMonth).count;
+
           return {
             date: m.date,
             totalClients: totalClients,
             leadsConverted: leadsConverted,
-            documentsReceived: documentsReceived,
-            mailsSent: mailsSent
+            mailsSent: mailsSent,
+            rdvPris: rdvPris,
+            documentsReceived: documentsReceived
           };
         });
 
@@ -185,10 +196,12 @@ router.get('/', authenticateToken, (req, res) => {
         totalClients,
         totalLeads, // Keep for backend but frontend can ignore
         mailSent,
+        rdvPris, // PHASE 2.7
         documentReceived,
         cancelled,
         conversionRate: totalLeads > 0 ? ((totalClients / totalLeads) * 100).toFixed(1) : 0,
         documentRate: totalClients > 0 ? ((documentReceived / totalClients) * 100).toFixed(1) : 0,
+        rdvRate: totalClients > 0 ? ((rdvPris / totalClients) * 100).toFixed(1) : 0, // PHASE 2.7
         cancellationRate: totalClients > 0 ? ((cancelled / totalClients) * 100).toFixed(1) : 0
       },
       charts: {

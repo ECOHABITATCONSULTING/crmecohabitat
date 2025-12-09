@@ -114,7 +114,8 @@ router.patch('/:id', authenticateToken, (req, res) => {
     const {
       first_name, last_name, email, phone, address, city, postal_code,
       mail_sent, mail_sent_date, document_received, document_received_date,
-      cancelled, cancelled_date, landline_phone, mobile_phone
+      cancelled, cancelled_date, rdv_pris, rdv_pris_date,
+      landline_phone, mobile_phone
     } = req.body;
 
     const updates = [];
@@ -153,16 +154,26 @@ router.patch('/:id', authenticateToken, (req, res) => {
         params.push(cancelled_date || new Date().toISOString().split('T')[0]);
       }
     }
+    // PHASE 2.4 - Tracking RDV pris
+    if (rdv_pris !== undefined) {
+      updates.push('rdv_pris = ?');
+      params.push(rdv_pris ? 1 : 0);
+      if (rdv_pris) {
+        updates.push('rdv_pris_date = ?');
+        params.push(rdv_pris_date || new Date().toISOString().split('T')[0]);
+      }
+    }
     if (landline_phone !== undefined) { updates.push('landline_phone = ?'); params.push(landline_phone); }
     if (mobile_phone !== undefined) { updates.push('mobile_phone = ?'); params.push(mobile_phone); }
 
-    // Auto-update status based on tracking checkboxes
-    if (cancelled !== undefined || document_received !== undefined || mail_sent !== undefined) {
+    // Auto-update status based on tracking checkboxes (PHASE 2.4 - Ajout rdv_pris)
+    if (cancelled !== undefined || document_received !== undefined || rdv_pris !== undefined || mail_sent !== undefined) {
       // Récupérer l'état actuel du client pour déterminer le nouveau statut
-      const currentClient = db.prepare('SELECT mail_sent, document_received, cancelled FROM clients WHERE id = ?').get(id);
+      const currentClient = db.prepare('SELECT mail_sent, document_received, rdv_pris, cancelled FROM clients WHERE id = ?').get(id);
 
       const finalCancelled = cancelled !== undefined ? cancelled : currentClient.cancelled;
       const finalDocumentReceived = document_received !== undefined ? document_received : currentClient.document_received;
+      const finalRdvPris = rdv_pris !== undefined ? rdv_pris : currentClient.rdv_pris;
       const finalMailSent = mail_sent !== undefined ? mail_sent : currentClient.mail_sent;
 
       let newStatus = 'nouveau';
@@ -170,6 +181,8 @@ router.patch('/:id', authenticateToken, (req, res) => {
         newStatus = 'annule';
       } else if (finalDocumentReceived) {
         newStatus = 'documents_recus';
+      } else if (finalRdvPris) {
+        newStatus = 'rdv_pris';
       } else if (finalMailSent) {
         newStatus = 'mail_envoye';
       }
@@ -300,59 +313,8 @@ router.delete('/:id/comments/:commentId', authenticateToken, (req, res) => {
   }
 });
 
-// Routes pour les rendez-vous des clients
-router.get('/:id/appointments', authenticateToken, (req, res) => {
-  try {
-    const { id } = req.params;
-    const appointments = db.prepare(`
-      SELECT client_appointments.*, users.username
-      FROM client_appointments
-      LEFT JOIN users ON client_appointments.user_id = users.id
-      WHERE client_id = ?
-      ORDER BY date ASC, time ASC
-    `).all(id);
-
-    res.json(appointments);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.post('/:id/appointments', authenticateToken, (req, res) => {
-  try {
-    const { id } = req.params;
-    const { title, date, time } = req.body;
-
-    if (!title || !date || !time) {
-      return res.status(400).json({ error: 'Titre, date et heure requis' });
-    }
-
-    const result = db.prepare(
-      'INSERT INTO client_appointments (client_id, user_id, title, date, time) VALUES (?, ?, ?, ?, ?)'
-    ).run(id, req.user.id, title, date, time);
-
-    res.status(201).json({
-      id: result.lastInsertRowid,
-      client_id: id,
-      user_id: req.user.id,
-      title,
-      date,
-      time
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.delete('/:id/appointments/:appointmentId', authenticateToken, (req, res) => {
-  try {
-    const { appointmentId } = req.params;
-    db.prepare('DELETE FROM client_appointments WHERE id = ?').run(appointmentId);
-    res.json({ message: 'Rendez-vous supprimé' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+// PHASE 2.5 - Routes client_appointments supprimées - Utiliser /api/appointments à la place
+// Les rendez-vous clients sont maintenant dans la table appointments unifiée
 
 // Exporter les clients en Excel
 router.get('/export/excel', authenticateToken, async (req, res) => {
@@ -380,7 +342,7 @@ router.get('/export/excel', authenticateToken, async (req, res) => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Clients');
 
-    // Définir les colonnes avec formatage
+    // Définir les colonnes avec formatage (PHASE 2.4 - Ajout RDV pris)
     worksheet.columns = [
       { header: 'ID', key: 'id', width: 8 },
       { header: 'Prénom', key: 'first_name', width: 15 },
@@ -394,6 +356,8 @@ router.get('/export/excel', authenticateToken, async (req, res) => {
       { header: 'Code postal', key: 'postal_code', width: 12 },
       { header: 'Courrier envoyé', key: 'mail_sent', width: 15 },
       { header: 'Date courrier', key: 'mail_sent_date', width: 18 },
+      { header: 'RDV pris', key: 'rdv_pris', width: 15 },
+      { header: 'Date RDV pris', key: 'rdv_pris_date', width: 18 },
       { header: 'Document reçu', key: 'document_received', width: 15 },
       { header: 'Date document', key: 'document_received_date', width: 18 },
       { header: 'Annulé', key: 'cancelled', width: 10 },
@@ -412,14 +376,16 @@ router.get('/export/excel', authenticateToken, async (req, res) => {
     worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
     worksheet.getRow(1).height = 25;
 
-    // Ajouter les données avec formatage conditionnel
+    // Ajouter les données avec formatage conditionnel (PHASE 2.4 - Ajout RDV pris)
     clients.forEach((client, index) => {
       const row = worksheet.addRow({
         ...client,
         mail_sent: client.mail_sent ? 'Oui' : 'Non',
+        rdv_pris: client.rdv_pris ? 'Oui' : 'Non',
         document_received: client.document_received ? 'Oui' : 'Non',
         cancelled: client.cancelled ? 'Oui' : 'Non',
         mail_sent_date: client.mail_sent_date ? new Date(client.mail_sent_date).toLocaleString('fr-FR') : '',
+        rdv_pris_date: client.rdv_pris_date ? new Date(client.rdv_pris_date).toLocaleString('fr-FR') : '',
         document_received_date: client.document_received_date ? new Date(client.document_received_date).toLocaleString('fr-FR') : '',
         cancelled_date: client.cancelled_date ? new Date(client.cancelled_date).toLocaleString('fr-FR') : '',
         created_at: client.created_at ? new Date(client.created_at).toLocaleString('fr-FR') : '',
@@ -435,7 +401,7 @@ router.get('/export/excel', authenticateToken, async (req, res) => {
         };
       }
 
-      // Colorier les colonnes de tracking
+      // Colorier les colonnes de tracking (PHASE 2.4 - Ajout RDV pris)
       if (client.mail_sent) {
         row.getCell('mail_sent').fill = {
           type: 'pattern',
@@ -444,6 +410,16 @@ router.get('/export/excel', authenticateToken, async (req, res) => {
         };
         row.getCell('mail_sent').font = { color: { argb: 'FFFFFFFF' }, bold: true };
         row.getCell('mail_sent').alignment = { horizontal: 'center', vertical: 'middle' };
+      }
+
+      if (client.rdv_pris) {
+        row.getCell('rdv_pris').fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFF59E0B' }
+        };
+        row.getCell('rdv_pris').font = { color: { argb: 'FFFFFFFF' }, bold: true };
+        row.getCell('rdv_pris').alignment = { horizontal: 'center', vertical: 'middle' };
       }
 
       if (client.document_received) {
@@ -477,10 +453,10 @@ router.get('/export/excel', authenticateToken, async (req, res) => {
       });
     });
 
-    // Ajouter les filtres automatiques
+    // Ajouter les filtres automatiques (PHASE 2.4 - Ajusté pour inclure les nouvelles colonnes)
     worksheet.autoFilter = {
       from: 'A1',
-      to: `R1`
+      to: `T1`  // Augmenté de R1 à T1 (2 colonnes en plus : RDV pris + Date RDV pris)
     };
 
     // Générer le nom du fichier avec la date

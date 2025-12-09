@@ -145,6 +145,16 @@ const Dashboard = () => {
           </div>
 
           <div className={styles.card}>
+            <div className={styles.cardIcon} style={{background: 'rgba(245, 158, 11, 0.1)'}}>
+              <Calendar size={24} style={{color: '#f59e0b'}} />
+            </div>
+            <div className={styles.cardContent}>
+              <div className={styles.cardValue}>{data.summary.rdvPris || 0}</div>
+              <div className={styles.cardLabel}>RDV pris</div>
+            </div>
+          </div>
+
+          <div className={styles.card}>
             <div className={styles.cardIcon} style={{background: 'rgba(16, 185, 129, 0.1)'}}>
               <FileText size={24} style={{color: '#10b981'}} />
             </div>
@@ -277,6 +287,17 @@ const Dashboard = () => {
               <div className={styles.cardValue}>{personalData.mail_sent}</div>
               <div className={styles.cardLabel}>Courriers envoyés</div>
               <div className={styles.cardSubtext}>{personalData.mail_sent_rate}% de mes clients</div>
+            </div>
+          </div>
+
+          <div className={styles.card}>
+            <div className={styles.cardIcon} style={{background: 'rgba(245, 158, 11, 0.1)'}}>
+              <Calendar size={24} style={{color: '#f59e0b'}} />
+            </div>
+            <div className={styles.cardContent}>
+              <div className={styles.cardValue}>{personalData.rdv_pris || 0}</div>
+              <div className={styles.cardLabel}>RDV pris</div>
+              <div className={styles.cardSubtext}>{personalData.rdv_rate || 0}% de mes clients</div>
             </div>
           </div>
 

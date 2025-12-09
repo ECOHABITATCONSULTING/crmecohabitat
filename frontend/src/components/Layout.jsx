@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Logo from './Logo';
-import { Home, Users, Calendar, LogOut, Menu, X, Settings, UserCheck, BarChart2, ChevronDown, ChevronRight, Database, List } from 'lucide-react';
+import { Home, Users, Calendar, LogOut, Menu, X, Settings, UserCheck, BarChart2, ChevronDown, ChevronRight, Database, List, Briefcase } from 'lucide-react';
 import styles from './Layout.module.css';
 
 const Layout = ({ children }) => {
@@ -26,6 +26,7 @@ const Layout = ({ children }) => {
 
   const settingsItems = [
     { path: '/settings/users', icon: Users, label: 'Utilisateurs', color: '#06b6d4' },
+    { path: '/settings/commerciaux', icon: Briefcase, label: 'Commerciaux', color: '#f59e0b' }, // PHASE 3.6
     { path: '/settings/dimensioning', icon: Database, label: 'Dimensionnement', color: '#ec4899' },
   ];
 

@@ -21,7 +21,8 @@ const ImportModal = ({ onClose, onSuccess }) => {
   };
 
   const handleDownloadTemplate = () => {
-    const csvContent = 'first_name,last_name,email,phone\nJean,Dupont,jean.dupont@email.com,0601020304\nMarie,Martin,marie.martin@email.com,0612345678';
+    // PHASE 3.10 - Template CSV étendu avec tous les champs
+    const csvContent = 'first_name,last_name,email,phone,mobile_phone,address,city,postal_code,country\nJean,Dupont,jean.dupont@email.com,0601020304,0612345678,"12 rue de la Paix",Paris,75001,France\nMarie,Martin,marie.martin@email.com,0698765432,,"45 avenue des Champs",Lyon,69001,';
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -85,14 +86,28 @@ const ImportModal = ({ onClose, onSuccess }) => {
 
               <div className={styles.section}>
                 <h3 className={styles.sectionTitle}>Format du fichier CSV</h3>
+                <p className={styles.description}>
+                  <strong>Champs obligatoires :</strong>
+                </p>
                 <ul className={styles.instructions}>
-                  <li><strong>first_name</strong> : Prénom (obligatoire)</li>
-                  <li><strong>last_name</strong> : Nom (obligatoire)</li>
-                  <li><strong>email</strong> : Email (optionnel)</li>
-                  <li><strong>phone</strong> : Téléphone (optionnel)</li>
+                  <li><strong>first_name</strong> : Prénom</li>
+                  <li><strong>last_name</strong> : Nom</li>
+                  <li><strong>email</strong> : Email</li>
+                  <li><strong>phone</strong> : Téléphone</li>
+                </ul>
+                <p className={styles.description}>
+                  <strong>Champs optionnels :</strong>
+                </p>
+                <ul className={styles.instructions}>
+                  <li><strong>mobile_phone</strong> : Téléphone mobile</li>
+                  <li><strong>address</strong> : Adresse complète</li>
+                  <li><strong>city</strong> : Ville</li>
+                  <li><strong>postal_code</strong> : Code postal</li>
+                  <li><strong>country</strong> : Pays</li>
                 </ul>
                 <p className={styles.note}>
                   Le fichier doit être encodé en <strong>UTF-8</strong> et utiliser une virgule comme séparateur.
+                  Vous pouvez aussi utiliser les noms français : prénom, nom, téléphone, mobile, adresse, ville, code postal, pays.
                 </p>
               </div>
 

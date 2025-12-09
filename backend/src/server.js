@@ -11,6 +11,7 @@ const appointmentsRoutes = require('./routes/appointments');
 const clientsRoutes = require('./routes/clients');
 const analyticsRoutes = require('./routes/analytics');
 const dimensioningRoutes = require('./routes/dimensioning');
+const commerciauxRoutes = require('./routes/commerciaux');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -28,6 +29,7 @@ app.use('/api/appointments', appointmentsRoutes);
 app.use('/api/clients', clientsRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/dimensioning', dimensioningRoutes);
+app.use('/api/commerciaux', commerciauxRoutes);
 
 // Route de test
 app.get('/api/health', (req, res) => {

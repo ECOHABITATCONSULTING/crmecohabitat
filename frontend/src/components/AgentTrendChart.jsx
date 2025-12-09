@@ -8,8 +8,9 @@ const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 const METRICS = [
   { value: 'totalClients', label: 'Nombre de clients' },
   { value: 'leadsConverted', label: 'Leads convertis' },
-  { value: 'documentsReceived', label: 'Documents reçus' },
-  { value: 'mailsSent', label: 'Mails envoyés' }
+  { value: 'mailsSent', label: 'Mails envoyés' },
+  { value: 'rdvPris', label: 'RDV pris' },
+  { value: 'documentsReceived', label: 'Documents reçus' }
 ];
 
 const AgentTrendChart = ({ agentTrendData, agents = [], title = "Évolution des performances" }) => {

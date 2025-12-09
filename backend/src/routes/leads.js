@@ -214,7 +214,7 @@ router.delete('/bulk', authenticateToken, (req, res) => {
   }
 });
 
-// Import CSV
+// PHASE 2.6 - Import CSV amélioré (support de tous les champs)
 router.post('/import', authenticateToken, requireAdmin, upload.single('file'), (req, res) => {
   try {
     if (!req.file) {
@@ -223,26 +223,61 @@ router.post('/import', authenticateToken, requireAdmin, upload.single('file'), (
 
     const results = [];
     let errors = [];
+    let lineNumber = 0;
 
     fs.createReadStream(req.file.path)
       .pipe(csv())
       .on('data', (data) => {
+        lineNumber++;
         try {
-          // Vérifier que les colonnes requises existent
-          if (!data.first_name || !data.last_name) {
-            errors.push(`Ligne ignorée: Nom ou prénom manquant`);
+          // Normaliser les noms de colonnes (supporter français et anglais)
+          const normalizedData = {};
+          Object.keys(data).forEach(key => {
+            const lowerKey = key.toLowerCase().trim();
+            // Mapping français → anglais
+            if (lowerKey === 'prénom' || lowerKey === 'prenom') normalizedData.first_name = data[key];
+            else if (lowerKey === 'nom') normalizedData.last_name = data[key];
+            else if (lowerKey === 'téléphone' || lowerKey === 'telephone' || lowerKey === 'tel') normalizedData.phone = data[key];
+            else if (lowerKey === 'mobile' || lowerKey === 'portable') normalizedData.mobile_phone = data[key];
+            else if (lowerKey === 'adresse') normalizedData.address = data[key];
+            else if (lowerKey === 'ville' || lowerKey === 'city') normalizedData.city = data[key];
+            else if (lowerKey === 'code postal' || lowerKey === 'code_postal' || lowerKey === 'cp') normalizedData.postal_code = data[key];
+            else if (lowerKey === 'pays' || lowerKey === 'country') normalizedData.country = data[key];
+            else normalizedData[lowerKey] = data[key]; // Conserver les autres clés telles quelles
+          });
+
+          // Fusionner avec les données originales (priorité aux normalisées)
+          const finalData = { ...data, ...normalizedData };
+
+          // Vérifier que les 4 colonnes OBLIGATOIRES existent
+          const requiredFields = ['first_name', 'last_name', 'email', 'phone'];
+          const missingFields = requiredFields.filter(field => !finalData[field] || finalData[field].trim() === '');
+
+          if (missingFields.length > 0) {
+            errors.push(`Ligne ${lineNumber}: Champs obligatoires manquants: ${missingFields.join(', ')}`);
             return;
           }
 
-          const result = db.prepare('INSERT INTO leads (first_name, last_name, email, phone) VALUES (?, ?, ?, ?)').run(
-            data.first_name,
-            data.last_name,
-            data.email || null,
-            data.phone || null
+          // Insérer avec TOUS les champs disponibles
+          const result = db.prepare(`
+            INSERT INTO leads (
+              first_name, last_name, email, phone,
+              mobile_phone, address, city, postal_code, country
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).run(
+            finalData.first_name.trim(),
+            finalData.last_name.trim(),
+            finalData.email.trim(),
+            finalData.phone.trim(),
+            finalData.mobile_phone?.trim() || null,
+            finalData.address?.trim() || null,
+            finalData.city?.trim() || null,
+            finalData.postal_code?.trim() || null,
+            finalData.country?.trim() || null
           );
           results.push(result.lastInsertRowid);
         } catch (error) {
-          errors.push(`Erreur ligne: ${error.message}`);
+          errors.push(`Ligne ${lineNumber}: ${error.message}`);
         }
       })
       .on('end', () => {
@@ -250,8 +285,9 @@ router.post('/import', authenticateToken, requireAdmin, upload.single('file'), (
         fs.unlinkSync(req.file.path);
 
         res.json({
-          message: `${results.length} lead(s) importé(s)`,
+          message: `${results.length} lead(s) importé(s) avec succès`,
           imported: results.length,
+          total_lines: lineNumber,
           errors: errors.length > 0 ? errors : undefined
         });
       })

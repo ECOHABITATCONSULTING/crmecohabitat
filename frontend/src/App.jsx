@@ -9,6 +9,7 @@ import Clients from './pages/Clients';
 import Leads from './pages/Leads';
 import Calendar from './pages/Calendar';
 import Users from './pages/Users';
+import Commerciaux from './pages/Commerciaux'; // PHASE 3.6
 import Settings from './pages/Settings';
 
 function App() {
@@ -54,6 +55,14 @@ function App() {
             <PrivateRoute adminOnly={true}>
               <Layout>
                 <Users />
+              </Layout>
+            </PrivateRoute>
+          } />
+
+          <Route path="/settings/commerciaux" element={
+            <PrivateRoute adminOnly={true}>
+              <Layout>
+                <Commerciaux />
               </Layout>
             </PrivateRoute>
           } />

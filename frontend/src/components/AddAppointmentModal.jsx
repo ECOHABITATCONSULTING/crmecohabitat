@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { X, Save, Search, Calendar, Clock } from 'lucide-react';
+import { X, Save, Search, Calendar, Clock, Briefcase } from 'lucide-react';
 import styles from './AddAppointmentModal.module.css';
 
 const AddAppointmentModal = ({ onClose, onSuccess }) => {
@@ -9,7 +9,8 @@ const AddAppointmentModal = ({ onClose, onSuccess }) => {
     time: '',
     title: '',
     lead_id: null,
-    client_id: null
+    client_id: null,
+    commercial_id: null // PHASE 3.7
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -17,12 +18,25 @@ const AddAppointmentModal = ({ onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searching, setSearching] = useState(false);
+  const [commerciaux, setCommerciaux] = useState([]); // PHASE 3.7
 
   useEffect(() => {
     // Set default date to today
     const today = new Date().toISOString().split('T')[0];
     setFormData(prev => ({ ...prev, date: today }));
+
+    // PHASE 3.7 - Fetch commerciaux
+    fetchCommerciaux();
   }, []);
+
+  const fetchCommerciaux = async () => {
+    try {
+      const response = await api.get('/commerciaux');
+      setCommerciaux(response.data);
+    } catch (error) {
+      console.error('Erreur lors du chargement des commerciaux:', error);
+    }
+  };
 
   useEffect(() => {
     if (searchQuery.length >= 2) {
@@ -197,6 +211,25 @@ const AddAppointmentModal = ({ onClose, onSuccess }) => {
               placeholder="Ex: Visite technique"
               className={styles.input}
             />
+          </div>
+
+          {/* PHASE 3.7 - Commercial dropdown */}
+          <div className={styles.formGroup}>
+            <label>
+              <Briefcase size={16} /> Commercial (optionnel)
+            </label>
+            <select
+              value={formData.commercial_id || ''}
+              onChange={(e) => setFormData({ ...formData, commercial_id: e.target.value ? parseInt(e.target.value) : null })}
+              className={styles.input}
+            >
+              <option value="">Aucun commercial</option>
+              {commerciaux.map(commercial => (
+                <option key={commercial.id} value={commercial.id}>
+                  {commercial.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {error && (
