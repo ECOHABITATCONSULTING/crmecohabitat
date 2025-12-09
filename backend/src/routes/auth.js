@@ -8,7 +8,8 @@ const router = express.Router();
 
 // Fonction pour obtenir l'IP du client
 const getClientIp = (req) => {
-  return req.headers['x-forwarded-for']?.split(',')[0].trim() ||
+  const forwarded = req.headers['x-forwarded-for'];
+  return (forwarded ? forwarded.split(',')[0].trim() : null) ||
          req.headers['x-real-ip'] ||
          req.connection.remoteAddress ||
          req.socket.remoteAddress;
