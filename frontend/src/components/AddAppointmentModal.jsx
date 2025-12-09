@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { X, Save, Search, Calendar, Clock, Briefcase } from 'lucide-react';
+import { X, Save, Search, Calendar as CalendarIcon, Clock, Briefcase } from 'lucide-react';
 import styles from './AddAppointmentModal.module.css';
 
 const AddAppointmentModal = ({ onClose, onSuccess }) => {
@@ -176,7 +176,7 @@ const AddAppointmentModal = ({ onClose, onSuccess }) => {
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
               <label>
-                <Calendar size={16} /> Date
+                <CalendarIcon size={16} /> Date
               </label>
               <input
                 type="date"

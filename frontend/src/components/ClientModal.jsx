@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
-import { X, MessageSquare, Calendar, Send, User, Save, CheckCircle, Mail, FileText, XCircle, Phone, Calculator } from 'lucide-react';
+import { X, MessageSquare, Calendar as CalendarIcon, Send, User, Save, CheckCircle, Mail, FileText, XCircle, Phone, Calculator } from 'lucide-react';
 import styles from './ClientModal.module.css';
 import DimensioningModal from './DimensioningModal';
 
@@ -198,7 +198,7 @@ const ClientModal = ({ client, onClose }) => {
             className={`${styles.tab} ${activeTab === 'appointments' ? styles.active : ''}`}
             onClick={() => setActiveTab('appointments')}
           >
-            <Calendar size={16} />
+            <CalendarIcon size={16} />
             Rendez-vous ({appointments.length})
           </button>
         </div>
@@ -339,7 +339,7 @@ const ClientModal = ({ client, onClose }) => {
                     className={`${styles.trackingLabel} ${clientInfo.rdv_pris ? styles.checked : ''}`}
                     onClick={() => handleTrackingChange('rdv_pris')}
                   >
-                    <Calendar size={18} />
+                    <CalendarIcon size={18} />
                     <span>RDV pris</span>
                     {clientInfo.rdv_pris && <CheckCircle size={16} className={styles.checkIcon} />}
                   </label>
@@ -485,7 +485,7 @@ const ClientModal = ({ client, onClose }) => {
                   />
                 </div>
                 <button type="submit" className={styles.submitBtn}>
-                  <Calendar size={16} /> Créer le RDV
+                  <CalendarIcon size={16} /> Créer le RDV
                 </button>
               </form>
             </>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { X, MessageSquare, Calendar, Send, User, Save } from 'lucide-react';
+import { X, MessageSquare, Calendar as CalendarIcon, Send, User, Save } from 'lucide-react';
 import styles from './LeadModal.module.css';
 
 const LeadModal = ({ lead, onClose }) => {
@@ -166,7 +166,7 @@ const LeadModal = ({ lead, onClose }) => {
             className={`${styles.tab} ${activeTab === 'appointments' ? styles.active : ''}`}
             onClick={() => setActiveTab('appointments')}
           >
-            <Calendar size={16} />
+            <CalendarIcon size={16} />
             Rendez-vous ({appointments.length})
           </button>
         </div>
@@ -412,7 +412,7 @@ const LeadModal = ({ lead, onClose }) => {
                   />
                 </div>
                 <button type="submit" className={styles.submitBtn}>
-                  <Calendar size={16} /> Créer le RDV
+                  <CalendarIcon size={16} /> Créer le RDV
                 </button>
               </form>
             </>

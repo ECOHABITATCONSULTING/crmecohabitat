@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Users, Mail, FileText, XCircle, Download } from 'lucide-react';
+import { TrendingUp, Users, Mail, FileText, XCircle, Download, Calendar as CalendarIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import DateRangeSelector from '../components/DateRangeSelector';
 import AgentPerformanceTable from '../components/AgentPerformanceTable';
@@ -146,7 +146,7 @@ const Dashboard = () => {
 
           <div className={styles.card}>
             <div className={styles.cardIcon} style={{background: 'rgba(245, 158, 11, 0.1)'}}>
-              <Calendar size={24} style={{color: '#f59e0b'}} />
+              <CalendarIcon size={24} style={{color: '#f59e0b'}} />
             </div>
             <div className={styles.cardContent}>
               <div className={styles.cardValue}>{data.summary.rdvPris || 0}</div>
@@ -292,7 +292,7 @@ const Dashboard = () => {
 
           <div className={styles.card}>
             <div className={styles.cardIcon} style={{background: 'rgba(245, 158, 11, 0.1)'}}>
-              <Calendar size={24} style={{color: '#f59e0b'}} />
+              <CalendarIcon size={24} style={{color: '#f59e0b'}} />
             </div>
             <div className={styles.cardContent}>
               <div className={styles.cardValue}>{personalData.rdv_pris || 0}</div>

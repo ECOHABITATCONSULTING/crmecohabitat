@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Logo from './Logo';
-import { Home, Users, Calendar, LogOut, Menu, X, Settings, UserCheck, BarChart2, ChevronDown, ChevronRight, Database, List, Briefcase } from 'lucide-react';
+import { Home, Users, Calendar as CalendarIcon, LogOut, Menu, X, Settings, UserCheck, BarChart2, ChevronDown, ChevronRight, Database, List, Briefcase } from 'lucide-react';
 import styles from './Layout.module.css';
 
 const Layout = ({ children }) => {
@@ -21,7 +21,7 @@ const Layout = ({ children }) => {
     { path: '/dashboard', icon: BarChart2, label: 'Dashboard', roles: ['admin', 'agent'], color: '#3b82f6' },
     { path: '/clients', icon: UserCheck, label: 'Clients', roles: ['admin', 'agent'], color: '#10b981' },
     { path: '/leads', icon: List, label: 'Leads', roles: ['admin', 'agent'], color: '#f59e0b' },
-    { path: '/calendar', icon: Calendar, label: 'Agenda', roles: ['admin', 'agent'], color: '#8b5cf6' },
+    { path: '/calendar', icon: CalendarIcon, label: 'Agenda', roles: ['admin', 'agent'], color: '#8b5cf6' },
   ];
 
   const settingsItems = [
