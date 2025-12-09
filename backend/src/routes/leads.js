@@ -269,11 +269,11 @@ router.post('/import', authenticateToken, requireAdmin, upload.single('file'), (
             finalData.last_name.trim(),
             finalData.email.trim(),
             finalData.phone.trim(),
-            finalData.mobile_phone?.trim() || null,
-            finalData.address?.trim() || null,
-            finalData.city?.trim() || null,
-            finalData.postal_code?.trim() || null,
-            finalData.country?.trim() || null
+            (finalData.mobile_phone ? finalData.mobile_phone.trim() : null) || null,
+            (finalData.address ? finalData.address.trim() : null) || null,
+            (finalData.city ? finalData.city.trim() : null) || null,
+            (finalData.postal_code ? finalData.postal_code.trim() : null) || null,
+            (finalData.country ? finalData.country.trim() : null) || null
           );
           results.push(result.lastInsertRowid);
         } catch (error) {

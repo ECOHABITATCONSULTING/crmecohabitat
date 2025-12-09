@@ -459,10 +459,10 @@ router.get('/agent/:agentId', authenticateToken, (req, res) => {
       },
       trend: trendData,
       teamAverage: {
-        avg_clients: teamAverage?.avg_clients ? parseFloat(teamAverage.avg_clients.toFixed(1)) : 0,
-        avg_mail_rate: teamAverage?.avg_mail_rate ? parseFloat(teamAverage.avg_mail_rate.toFixed(1)) : 0,
-        avg_doc_rate: teamAverage?.avg_doc_rate ? parseFloat(teamAverage.avg_doc_rate.toFixed(1)) : 0,
-        avg_cancel_rate: teamAverage?.avg_cancel_rate ? parseFloat(teamAverage.avg_cancel_rate.toFixed(1)) : 0
+        avg_clients: (teamAverage && teamAverage.avg_clients) ? parseFloat(teamAverage.avg_clients.toFixed(1)) : 0,
+        avg_mail_rate: (teamAverage && teamAverage.avg_mail_rate) ? parseFloat(teamAverage.avg_mail_rate.toFixed(1)) : 0,
+        avg_doc_rate: (teamAverage && teamAverage.avg_doc_rate) ? parseFloat(teamAverage.avg_doc_rate.toFixed(1)) : 0,
+        avg_cancel_rate: (teamAverage && teamAverage.avg_cancel_rate) ? parseFloat(teamAverage.avg_cancel_rate.toFixed(1)) : 0
       },
       period: period,
       start_date: start_date || null,
