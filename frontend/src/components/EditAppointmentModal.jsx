@@ -18,6 +18,8 @@ const EditAppointmentModal = ({ appointment, onClose, onSuccess, onDelete }) => 
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const isOwner = user?.role === 'admin' || appointment?.user_id === user?.id;
+  const isReadOnly = !isOwner;
 
   useEffect(() => {
     if (appointment) {
@@ -113,6 +115,12 @@ const EditAppointmentModal = ({ appointment, onClose, onSuccess, onDelete }) => 
           </div>
         )}
 
+        {isReadOnly && (
+          <div className={styles.warning}>
+            ⚠️ Ce rendez-vous appartient à {appointment.username}. Vous pouvez le consulter mais pas le modifier.
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className={styles.form}>
           {/* Contact info (read-only) */}
           <div className={styles.infoSection}>
@@ -136,6 +144,7 @@ const EditAppointmentModal = ({ appointment, onClose, onSuccess, onDelete }) => 
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
               className={styles.input}
+              disabled={isReadOnly}
               required
             />
           </div>
@@ -150,6 +159,7 @@ const EditAppointmentModal = ({ appointment, onClose, onSuccess, onDelete }) => 
               value={formData.time}
               onChange={(e) => setFormData({ ...formData, time: e.target.value })}
               className={styles.input}
+              disabled={isReadOnly}
               required
             />
           </div>
@@ -164,6 +174,7 @@ const EditAppointmentModal = ({ appointment, onClose, onSuccess, onDelete }) => 
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               className={styles.input}
+              disabled={isReadOnly}
               placeholder="Titre du rendez-vous"
               required
             />
@@ -197,6 +208,7 @@ const EditAppointmentModal = ({ appointment, onClose, onSuccess, onDelete }) => 
               value={formData.commercial_id || ''}
               onChange={(e) => setFormData({ ...formData, commercial_id: parseInt(e.target.value) || null })}
               className={styles.input}
+              disabled={isReadOnly}
             >
               <option value="">Aucun</option>
               {commerciaux.map(commercial => (
@@ -214,6 +226,7 @@ const EditAppointmentModal = ({ appointment, onClose, onSuccess, onDelete }) => 
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               className={styles.textarea}
+              disabled={isReadOnly}
               placeholder="Commentaire optionnel..."
               rows={3}
             />
@@ -221,20 +234,24 @@ const EditAppointmentModal = ({ appointment, onClose, onSuccess, onDelete }) => 
 
           {/* Actions */}
           <div className={styles.formActions}>
-            <button
-              type="button"
-              onClick={handleDelete}
-              className={styles.deleteBtn}
-            >
-              <Trash2 size={18} /> Supprimer
-            </button>
+            {isOwner && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                className={styles.deleteBtn}
+              >
+                <Trash2 size={18} /> Supprimer
+              </button>
+            )}
             <div className={styles.rightActions}>
               <button type="button" onClick={onClose} className={styles.cancelBtn}>
-                Annuler
+                {isReadOnly ? 'Fermer' : 'Annuler'}
               </button>
-              <button type="submit" className={styles.submitBtn} disabled={loading}>
-                <Save size={18} /> {loading ? 'Enregistrement...' : 'Enregistrer'}
-              </button>
+              {isOwner && (
+                <button type="submit" className={styles.submitBtn} disabled={loading}>
+                  <Save size={18} /> {loading ? 'Enregistrement...' : 'Enregistrer'}
+                </button>
+              )}
             </div>
           </div>
         </form>
