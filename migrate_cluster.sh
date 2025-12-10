@@ -41,7 +41,7 @@ echo -e "${GREEN}✅ Application arrêtée${NC}"
 
 echo ""
 echo -e "${BLUE}📍 Étape 3/5: Démarrage en cluster mode...${NC}"
-cd /var/www/crm-backend || { echo -e "${RED}❌ Répertoire introuvable${NC}"; exit 1; }
+cd backend || { echo -e "${RED}❌ Répertoire backend introuvable${NC}"; exit 1; }
 pm2 start ecosystem.config.js
 echo -e "${GREEN}✅ Cluster mode activé (2 instances)${NC}"
 
