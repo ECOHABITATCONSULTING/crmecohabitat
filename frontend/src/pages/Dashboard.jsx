@@ -14,7 +14,7 @@ const Dashboard = () => {
   const [agentsData, setAgentsData] = useState([]);
   const [personalData, setPersonalData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState({ period: 'month', start_date: null, end_date: null });
+  const [dateRange, setDateRange] = useState({ period: 'all', start_date: null, end_date: null });
 
   useEffect(() => {
     fetchAnalytics();
