@@ -548,14 +548,28 @@ router.get('/agent/:agentId', authenticateToken, (req, res) => {
         trendParams.push(start_date, end_date);
         trendDateCondition = 'AND created_at BETWEEN ? AND ?';
       } else if (period) {
-        const today = new Date();
         let startDate;
+        const today = new Date();
         switch(period) {
-          case 'day': startDate = new Date(today.setHours(0, 0, 0, 0)); break;
-          case 'week': startDate = new Date(today); startDate.setDate(startDate.getDate() - 7); break;
-          case 'month': startDate = new Date(today); startDate.setMonth(startDate.getMonth() - 1); break;
-          case 'year': startDate = new Date(today); startDate.setFullYear(startDate.getFullYear() - 1); break;
-          default: startDate = new Date(today); startDate.setMonth(startDate.getMonth() - 1);
+          case 'day':
+            startDate = new Date(today);
+            startDate.setHours(0, 0, 0, 0);
+            break;
+          case 'week':
+            startDate = new Date(today);
+            startDate.setDate(startDate.getDate() - 7);
+            break;
+          case 'month':
+            startDate = new Date(today);
+            startDate.setMonth(startDate.getMonth() - 1);
+            break;
+          case 'year':
+            startDate = new Date(today);
+            startDate.setFullYear(startDate.getFullYear() - 1);
+            break;
+          default:
+            startDate = new Date(today);
+            startDate.setMonth(startDate.getMonth() - 1);
         }
         trendParams.push(startDate.toISOString());
         trendDateCondition = 'AND created_at >= ?';
@@ -590,7 +604,7 @@ router.get('/agent/:agentId', authenticateToken, (req, res) => {
         WHERE users.role = 'agent'
         GROUP BY users.id
       )
-    `).get(...params.slice(1)); // Remove agentId from params for team average
+    `).get(...dateParams); // Use dateParams for team average filtering
 
     const total = agentData.total_clients || 0;
     const mailRate = total > 0 ? ((agentData.mail_sent / total) * 100).toFixed(1) : '0.0';
