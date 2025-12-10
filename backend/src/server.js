@@ -60,3 +60,40 @@ server.headersTimeout = 186000;   // 186 secondes (doit être > keepAliveTimeout
 
 console.log(`⚙️  Keep-Alive Timeout configuré: ${server.keepAliveTimeout}ms`);
 console.log(`⚙️  Headers Timeout configuré: ${server.headersTimeout}ms\n`);
+
+// GRACEFUL SHUTDOWN HANDLERS - Fix pour ERR_CONNECTION_RESET
+let isShuttingDown = false;
+
+function gracefulShutdown(signal) {
+  if (isShuttingDown) {
+    console.log(`⚠️  Signal ${signal} ignoré - arrêt déjà en cours`);
+    return;
+  }
+
+  isShuttingDown = true;
+  console.log(`\n⚠️  Signal ${signal} reçu - arrêt gracieux en cours...`);
+  console.log(`🔄 Fermeture des connexions actives...`);
+
+  // Ferme le serveur en attendant que toutes les connexions se terminent
+  server.close(() => {
+    console.log('✅ Toutes les connexions fermées proprement');
+    console.log('✅ Serveur arrêté avec succès');
+    process.exit(0);
+  });
+
+  // Force l'arrêt après 10 secondes si les connexions ne se ferment pas
+  setTimeout(() => {
+    console.error('❌ Timeout atteint - arrêt forcé des connexions restantes');
+    process.exit(1);
+  }, 10000);
+}
+
+// Écoute des signaux d'arrêt
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));   // Ctrl+C
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM')); // PM2 reload/stop
+
+// Signal PM2 que l'application est prête (requis pour cluster mode)
+if (process.send) {
+  process.send('ready');
+  console.log('✅ Signal "ready" envoyé à PM2\n');
+}

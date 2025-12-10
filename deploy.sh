@@ -24,9 +24,9 @@ echo -e "${BLUE}🔧 Déploiement du backend...${NC}"
 cd backend
 npm install --production || { echo -e "${RED}❌ Erreur lors de l'installation des dépendances backend${NC}"; exit 1; }
 
-# Redémarrer le backend avec PM2
-pm2 restart crm-backend || pm2 start src/server.js --name crm-backend
-echo -e "${GREEN}✅ Backend redémarré${NC}"
+# Redémarrer le backend avec PM2 (reload pour zero-downtime)
+pm2 reload crm-backend || pm2 start ecosystem.config.js
+echo -e "${GREEN}✅ Backend rechargé sans downtime${NC}"
 
 # FRONTEND
 echo -e "${BLUE}🎨 Build du frontend...${NC}"
