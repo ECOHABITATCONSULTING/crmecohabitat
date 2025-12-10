@@ -64,20 +64,74 @@ router.get('/', authenticateToken, (req, res) => {
     // Build WHERE clause combining agent and date filters
     const whereClause = agentFilter && dateCondition ? `${agentFilter} ${dateCondition}` : (agentFilter || dateCondition || '');
 
-    // Get total counts with date filtering
+    // Get total counts with date filtering on created_at
     const totalClients = db.prepare(`SELECT COUNT(*) as count FROM clients ${whereClause}`).get(...params).count;
     const totalLeads = db.prepare(`SELECT COUNT(*) as count FROM leads ${whereClause}`).get(...params).count;
 
-    // PHASE 2.7 - Tracking statistics with date filtering (ajout rdv_pris)
-    const mailSentFilter = whereClause ? `${whereClause} AND mail_sent = 1` : 'WHERE mail_sent = 1';
-    const rdvPrisFilter = whereClause ? `${whereClause} AND rdv_pris = 1` : 'WHERE rdv_pris = 1';
-    const docReceivedFilter = whereClause ? `${whereClause} AND document_received = 1` : 'WHERE document_received = 1';
-    const cancelledFilter = whereClause ? `${whereClause} AND cancelled = 1` : 'WHERE cancelled = 1';
+    // TRACKING STATISTICS - Filter by TRACKING DATES instead of created_at
+    // This allows recent tracking actions to appear in analytics even if client is old
 
-    const mailSent = db.prepare(`SELECT COUNT(*) as count FROM clients ${mailSentFilter}`).get(...params).count;
-    const rdvPris = db.prepare(`SELECT COUNT(*) as count FROM clients ${rdvPrisFilter}`).get(...params).count;
-    const documentReceived = db.prepare(`SELECT COUNT(*) as count FROM clients ${docReceivedFilter}`).get(...params).count;
-    const cancelled = db.prepare(`SELECT COUNT(*) as count FROM clients ${cancelledFilter}`).get(...params).count;
+    // Build tracking date filters
+    let trackingDateCondition = '';
+    if (period !== 'all') {
+      if (start_date && end_date) {
+        trackingDateCondition = 'BETWEEN ? AND ?';
+      } else if (dateParams.length > 0) {
+        trackingDateCondition = '>= ?';
+      }
+    }
+
+    // Mail sent - filtered by mail_sent_date
+    let mailSentQuery = `SELECT COUNT(*) as count FROM clients WHERE mail_sent = 1`;
+    let mailSentParams = [];
+    if (trackingDateCondition) {
+      mailSentQuery += ` AND mail_sent_date ${trackingDateCondition}`;
+      mailSentParams = [...dateParams];
+    }
+    if (!isAdmin) {
+      mailSentQuery += ` AND assigned_to = ?`;
+      mailSentParams.push(userId);
+    }
+    const mailSent = db.prepare(mailSentQuery).get(...mailSentParams).count;
+
+    // RDV pris - filtered by rdv_pris_date
+    let rdvPrisQuery = `SELECT COUNT(*) as count FROM clients WHERE rdv_pris = 1`;
+    let rdvPrisParams = [];
+    if (trackingDateCondition) {
+      rdvPrisQuery += ` AND rdv_pris_date ${trackingDateCondition}`;
+      rdvPrisParams = [...dateParams];
+    }
+    if (!isAdmin) {
+      rdvPrisQuery += ` AND assigned_to = ?`;
+      rdvPrisParams.push(userId);
+    }
+    const rdvPris = db.prepare(rdvPrisQuery).get(...rdvPrisParams).count;
+
+    // Documents received - filtered by document_received_date
+    let docReceivedQuery = `SELECT COUNT(*) as count FROM clients WHERE document_received = 1`;
+    let docReceivedParams = [];
+    if (trackingDateCondition) {
+      docReceivedQuery += ` AND document_received_date ${trackingDateCondition}`;
+      docReceivedParams = [...dateParams];
+    }
+    if (!isAdmin) {
+      docReceivedQuery += ` AND assigned_to = ?`;
+      docReceivedParams.push(userId);
+    }
+    const documentReceived = db.prepare(docReceivedQuery).get(...docReceivedParams).count;
+
+    // Cancelled - filtered by cancelled_date
+    let cancelledQuery = `SELECT COUNT(*) as count FROM clients WHERE cancelled = 1`;
+    let cancelledParams = [];
+    if (trackingDateCondition) {
+      cancelledQuery += ` AND cancelled_date ${trackingDateCondition}`;
+      cancelledParams = [...dateParams];
+    }
+    if (!isAdmin) {
+      cancelledQuery += ` AND assigned_to = ?`;
+      cancelledParams.push(userId);
+    }
+    const cancelled = db.prepare(cancelledQuery).get(...cancelledParams).count;
 
     // Clients created over time
     const clientsOverTime = db.prepare(`
@@ -226,86 +280,121 @@ router.get('/agents', authenticateToken, requireAdmin, (req, res) => {
   try {
     const { period = 'month', start_date, end_date } = req.query;
 
-    // Calculate date condition
-    let dateCondition = '';
-    let params = [];
+    // Calculate date params
+    let dateParams = [];
+    let trackingDateCondition = '';
 
-    if (start_date && end_date) {
-      dateCondition = 'AND clients.created_at BETWEEN ? AND ?';
-      params = [start_date, end_date];
-    } else if (period) {
-      const today = new Date();
-      let startDate;
+    if (period !== 'all') {
+      if (start_date && end_date) {
+        dateParams = [start_date, end_date];
+        trackingDateCondition = 'BETWEEN ? AND ?';
+      } else if (period) {
+        const today = new Date();
+        let startDate;
 
-      switch(period) {
-        case 'day':
-          startDate = new Date(today.setHours(0, 0, 0, 0));
-          break;
-        case 'week':
-          startDate = new Date(today);
-          startDate.setDate(startDate.getDate() - 7);
-          break;
-        case 'month':
-          startDate = new Date(today);
-          startDate.setMonth(startDate.getMonth() - 1);
-          break;
-        case 'year':
-          startDate = new Date(today);
-          startDate.setFullYear(startDate.getFullYear() - 1);
-          break;
-        default:
-          startDate = new Date(today);
-          startDate.setMonth(startDate.getMonth() - 1);
+        switch(period) {
+          case 'day':
+            startDate = new Date(today.setHours(0, 0, 0, 0));
+            break;
+          case 'week':
+            startDate = new Date(today);
+            startDate.setDate(startDate.getDate() - 7);
+            break;
+          case 'month':
+            startDate = new Date(today);
+            startDate.setMonth(startDate.getMonth() - 1);
+            break;
+          case 'year':
+            startDate = new Date(today);
+            startDate.setFullYear(startDate.getFullYear() - 1);
+            break;
+          default:
+            startDate = new Date(today);
+            startDate.setMonth(startDate.getMonth() - 1);
+        }
+
+        dateParams = [startDate.toISOString()];
+        trackingDateCondition = '>= ?';
       }
-
-      dateCondition = 'AND clients.created_at >= ?';
-      params = [startDate.toISOString()];
     }
 
-    // Get all agents with comprehensive metrics
-    const agentsPerformance = db.prepare(`
-      SELECT
-        users.id,
-        users.username,
-        COUNT(DISTINCT clients.id) as total_clients,
-        COUNT(DISTINCT CASE WHEN clients.mail_sent = 1 THEN clients.id END) as mail_sent,
-        COUNT(DISTINCT CASE WHEN clients.document_received = 1 THEN clients.id END) as document_received,
-        COUNT(DISTINCT CASE WHEN clients.cancelled = 1 THEN clients.id END) as cancelled,
-        MAX(clients.updated_at) as last_activity
-      FROM users
-      LEFT JOIN clients ON users.id = clients.assigned_to ${dateCondition}
-      WHERE users.role = 'agent'
-      GROUP BY users.id, users.username
-      ORDER BY total_clients DESC
-    `).all(...params);
+    // Get all agents
+    const agents = db.prepare(`SELECT id, username FROM users WHERE role = 'agent'`).all();
 
-    // Calculate additional metrics for each agent
-    const agentsWithMetrics = agentsPerformance.map(agent => {
+    // Calculate metrics for each agent using tracking dates
+    const agentsWithMetrics = agents.map(agent => {
+      // Total clients (filtered by created_at)
+      let totalClientsQuery = `SELECT COUNT(*) as count FROM clients WHERE assigned_to = ?`;
+      let totalClientsParams = [agent.id];
+      if (trackingDateCondition) {
+        totalClientsQuery += ` AND created_at ${trackingDateCondition}`;
+        totalClientsParams.push(...dateParams);
+      }
+      const total_clients = db.prepare(totalClientsQuery).get(...totalClientsParams).count;
+
+      // Mail sent (filtered by mail_sent_date)
+      let mailSentQuery = `SELECT COUNT(*) as count FROM clients WHERE assigned_to = ? AND mail_sent = 1`;
+      let mailSentParams = [agent.id];
+      if (trackingDateCondition) {
+        mailSentQuery += ` AND mail_sent_date ${trackingDateCondition}`;
+        mailSentParams.push(...dateParams);
+      }
+      const mail_sent = db.prepare(mailSentQuery).get(...mailSentParams).count;
+
+      // RDV pris (filtered by rdv_pris_date)
+      let rdvPrisQuery = `SELECT COUNT(*) as count FROM clients WHERE assigned_to = ? AND rdv_pris = 1`;
+      let rdvPrisParams = [agent.id];
+      if (trackingDateCondition) {
+        rdvPrisQuery += ` AND rdv_pris_date ${trackingDateCondition}`;
+        rdvPrisParams.push(...dateParams);
+      }
+      const rdv_pris = db.prepare(rdvPrisQuery).get(...rdvPrisParams).count;
+
+      // Documents received (filtered by document_received_date)
+      let docReceivedQuery = `SELECT COUNT(*) as count FROM clients WHERE assigned_to = ? AND document_received = 1`;
+      let docReceivedParams = [agent.id];
+      if (trackingDateCondition) {
+        docReceivedQuery += ` AND document_received_date ${trackingDateCondition}`;
+        docReceivedParams.push(...dateParams);
+      }
+      const document_received = db.prepare(docReceivedQuery).get(...docReceivedParams).count;
+
+      // Cancelled (filtered by cancelled_date)
+      let cancelledQuery = `SELECT COUNT(*) as count FROM clients WHERE assigned_to = ? AND cancelled = 1`;
+      let cancelledParams = [agent.id];
+      if (trackingDateCondition) {
+        cancelledQuery += ` AND cancelled_date ${trackingDateCondition}`;
+        cancelledParams.push(...dateParams);
+      }
+      const cancelled = db.prepare(cancelledQuery).get(...cancelledParams).count;
+
       // Get leads count for conversion rate
-      const leadsCount = db.prepare(`
-        SELECT COUNT(*) as count
-        FROM leads
-        WHERE assigned_to = ?
-      `).get(agent.id).count;
+      const leadsCount = db.prepare(`SELECT COUNT(*) as count FROM leads WHERE assigned_to = ?`).get(agent.id).count;
 
-      const total = agent.total_clients || 0;
-      const mailRate = total > 0 ? ((agent.mail_sent / total) * 100).toFixed(1) : '0.0';
-      const documentRate = total > 0 ? ((agent.document_received / total) * 100).toFixed(1) : '0.0';
-      const cancellationRate = total > 0 ? ((agent.cancelled / total) * 100).toFixed(1) : '0.0';
-      const conversionRate = leadsCount > 0 ? ((total / leadsCount) * 100).toFixed(1) : '0.0';
+      // Get last activity
+      const lastActivity = db.prepare(`SELECT MAX(updated_at) as last FROM clients WHERE assigned_to = ?`).get(agent.id).last;
+
+      // Calculate rates
+      const mailRate = total_clients > 0 ? ((mail_sent / total_clients) * 100).toFixed(1) : '0.0';
+      const rdvRate = total_clients > 0 ? ((rdv_pris / total_clients) * 100).toFixed(1) : '0.0';
+      const documentRate = total_clients > 0 ? ((document_received / total_clients) * 100).toFixed(1) : '0.0';
+      const cancellationRate = total_clients > 0 ? ((cancelled / total_clients) * 100).toFixed(1) : '0.0';
+      const conversionRate = leadsCount > 0 ? ((total_clients / leadsCount) * 100).toFixed(1) : '0.0';
 
       return {
         id: agent.id,
         username: agent.username,
-        total_clients: total,
-        mail_sent: agent.mail_sent || 0,
+        total_clients: total_clients,
+        mail_sent: mail_sent,
         mail_sent_rate: parseFloat(mailRate),
-        document_received: agent.document_received || 0,
+        rdv_pris: rdv_pris,
+        rdv_rate: parseFloat(rdvRate),
+        document_received: document_received,
         document_received_rate: parseFloat(documentRate),
-        cancelled: agent.cancelled || 0,
+        cancelled: cancelled,
         cancellation_rate: parseFloat(cancellationRate),
         conversion_rate: parseFloat(conversionRate),
-        last_activity: agent.last_activity
+        last_activity: lastActivity
       };
     });
 
@@ -371,28 +460,77 @@ router.get('/agent/:agentId', authenticateToken, (req, res) => {
       }
     }
 
-    // Combine params in correct order: dateParams first (for LEFT JOIN), then agentId (for WHERE)
-    let params = [...dateParams, agentId];
+    // Build tracking date condition for individual metrics
+    let trackingDateCondition = '';
+    if (period !== 'all') {
+      if (start_date && end_date) {
+        trackingDateCondition = 'BETWEEN ? AND ?';
+      } else if (dateParams.length > 0) {
+        trackingDateCondition = '>= ?';
+      }
+    }
 
-    // Get agent info and metrics
-    const agentData = db.prepare(`
-      SELECT
-        users.id,
-        users.username,
-        COUNT(DISTINCT clients.id) as total_clients,
-        COUNT(DISTINCT CASE WHEN clients.mail_sent = 1 THEN clients.id END) as mail_sent,
-        COUNT(DISTINCT CASE WHEN clients.rdv_pris = 1 THEN clients.id END) as rdv_pris,
-        COUNT(DISTINCT CASE WHEN clients.document_received = 1 THEN clients.id END) as document_received,
-        COUNT(DISTINCT CASE WHEN clients.cancelled = 1 THEN clients.id END) as cancelled
-      FROM users
-      LEFT JOIN clients ON users.id = clients.assigned_to ${dateCondition}
-      WHERE users.id = ?
-      GROUP BY users.id, users.username
-    `).get(...params);
-
-    if (!agentData) {
+    // Get agent basic info
+    const agentInfo = db.prepare(`SELECT id, username FROM users WHERE id = ?`).get(agentId);
+    if (!agentInfo) {
       return res.status(404).json({ error: 'Agent non trouvé' });
     }
+
+    // Get total clients (filtered by created_at)
+    let totalClientsQuery = `SELECT COUNT(*) as count FROM clients WHERE assigned_to = ?`;
+    let totalClientsParams = [agentId];
+    if (dateCondition) {
+      totalClientsQuery += ` ${dateCondition.replace('AND clients.created_at', 'AND created_at')}`;
+      totalClientsParams.push(...dateParams);
+    }
+    const totalClients = db.prepare(totalClientsQuery).get(...totalClientsParams).count;
+
+    // Mail sent (filtered by mail_sent_date)
+    let mailSentQuery = `SELECT COUNT(*) as count FROM clients WHERE assigned_to = ? AND mail_sent = 1`;
+    let mailSentParams = [agentId];
+    if (trackingDateCondition) {
+      mailSentQuery += ` AND mail_sent_date ${trackingDateCondition}`;
+      mailSentParams.push(...dateParams);
+    }
+    const mailSent = db.prepare(mailSentQuery).get(...mailSentParams).count;
+
+    // RDV pris (filtered by rdv_pris_date)
+    let rdvPrisQuery = `SELECT COUNT(*) as count FROM clients WHERE assigned_to = ? AND rdv_pris = 1`;
+    let rdvPrisParams = [agentId];
+    if (trackingDateCondition) {
+      rdvPrisQuery += ` AND rdv_pris_date ${trackingDateCondition}`;
+      rdvPrisParams.push(...dateParams);
+    }
+    const rdvPris = db.prepare(rdvPrisQuery).get(...rdvPrisParams).count;
+
+    // Documents received (filtered by document_received_date)
+    let docReceivedQuery = `SELECT COUNT(*) as count FROM clients WHERE assigned_to = ? AND document_received = 1`;
+    let docReceivedParams = [agentId];
+    if (trackingDateCondition) {
+      docReceivedQuery += ` AND document_received_date ${trackingDateCondition}`;
+      docReceivedParams.push(...dateParams);
+    }
+    const documentReceived = db.prepare(docReceivedQuery).get(...docReceivedParams).count;
+
+    // Cancelled (filtered by cancelled_date)
+    let cancelledQuery = `SELECT COUNT(*) as count FROM clients WHERE assigned_to = ? AND cancelled = 1`;
+    let cancelledParams = [agentId];
+    if (trackingDateCondition) {
+      cancelledQuery += ` AND cancelled_date ${trackingDateCondition}`;
+      cancelledParams.push(...dateParams);
+    }
+    const cancelled = db.prepare(cancelledQuery).get(...cancelledParams).count;
+
+    // Combine data
+    const agentData = {
+      id: agentInfo.id,
+      username: agentInfo.username,
+      total_clients: totalClients,
+      mail_sent: mailSent,
+      rdv_pris: rdvPris,
+      document_received: documentReceived,
+      cancelled: cancelled
+    };
 
     // Get leads count for conversion rate
     const leadsCount = db.prepare(`
