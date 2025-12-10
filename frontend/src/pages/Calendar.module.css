@@ -42,7 +42,8 @@
   color: var(--accent-primary);
 }
 
-.agentFilter {
+.agentFilter,
+.commercialFilter {
   background: transparent;
   border: none;
   color: var(--text-primary);
