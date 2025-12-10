@@ -17,7 +17,7 @@ if [ ! -d "frontend/node_modules" ]; then
 fi
 
 echo ""
-echo "✅ Démarrage du serveur backend (port 5000)..."
+echo "✅ Démarrage du serveur backend (port 5001)..."
 cd backend && npm run dev &
 BACKEND_PID=$!
 
@@ -34,7 +34,7 @@ echo "✨ CRM Leads démarré avec succès!"
 echo "========================================="
 echo ""
 echo "🌐 Frontend: http://localhost:3000"
-echo "🔧 Backend API: http://localhost:5000/api"
+echo "🔧 Backend API: http://localhost:5001/api"
 echo ""
 echo "👤 Compte admin:"
 echo "   Username: admin"

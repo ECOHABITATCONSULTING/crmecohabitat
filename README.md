@@ -64,25 +64,48 @@ Un système CRM moderne et futuriste pour la gestion de leads avec un design ép
 
 ## Installation
 
-### Backend
+### Démarrage rapide (recommandé)
 
+```bash
+./start.sh
+```
+
+Le script démarre automatiquement backend et frontend.
+
+### Démarrage manuel
+
+**Backend** (port 5001):
 ```bash
 cd backend
 npm install
 npm run dev
 ```
 
-Le serveur démarre sur http://localhost:5000
-
-### Frontend
-
+**Frontend** (port 3000):
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-L'application démarre sur http://localhost:3000
+### Variables d'environnement
+
+**Backend** (`backend/.env`):
+```env
+PORT=5001
+JWT_SECRET=votre_secret_jwt_changez_moi_en_production
+DATABASE_PATH=./database.db
+NODE_ENV=development
+```
+
+**Frontend** (`frontend/.env`):
+```env
+VITE_API_URL=/api  # En dev, utilise le proxy Vite
+```
+
+## Déploiement
+
+Voir [DEPLOYMENT.md](./DEPLOYMENT.md) pour les instructions complètes.
 
 ## Technologies
 

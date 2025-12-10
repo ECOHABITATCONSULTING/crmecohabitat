@@ -2,7 +2,11 @@ const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 
-const db = new Database(path.join(__dirname, '../database.db'));
+// Utiliser DATABASE_PATH depuis .env, sinon fallback sur database.db
+const dbPath = process.env.DATABASE_PATH
+  ? path.join(__dirname, '..', process.env.DATABASE_PATH)
+  : path.join(__dirname, '../database.db');
+const db = new Database(dbPath);
 
 // Créer les tables
 db.exec(`
