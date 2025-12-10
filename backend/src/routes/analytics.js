@@ -331,11 +331,11 @@ router.get('/agent/:agentId', authenticateToken, (req, res) => {
 
     // Calculate date condition
     let dateCondition = '';
-    let params = [agentId];
+    let dateParams = [];
 
     if (start_date && end_date) {
       dateCondition = 'AND clients.created_at BETWEEN ? AND ?';
-      params.push(start_date, end_date);
+      dateParams = [start_date, end_date];
     } else if (period) {
       const today = new Date();
       let startDate;
@@ -362,8 +362,11 @@ router.get('/agent/:agentId', authenticateToken, (req, res) => {
       }
 
       dateCondition = 'AND clients.created_at >= ?';
-      params.push(startDate.toISOString());
+      dateParams = [startDate.toISOString()];
     }
+
+    // Combine params in correct order: dateParams first (for LEFT JOIN), then agentId (for WHERE)
+    let params = [...dateParams, agentId];
 
     // Get agent info and metrics
     const agentData = db.prepare(`
