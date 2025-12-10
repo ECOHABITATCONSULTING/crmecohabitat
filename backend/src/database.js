@@ -319,4 +319,51 @@ try {
   console.log('ℹ️  Migration appointments déjà effectuée ou table client_appointments vide:', e.message);
 }
 
+// ============================================================================
+// PERFORMANCE OPTIMIZATION - Add indexes for faster queries
+// ============================================================================
+console.log('\n🚀 Optimisation des performances...');
+
+try {
+  // Index on clients.assigned_to for agent filtering
+  db.exec('CREATE INDEX IF NOT EXISTS idx_clients_assigned_to ON clients(assigned_to)');
+  console.log('✓ Index clients.assigned_to créé');
+} catch (e) {
+  console.log('  Index assigned_to déjà existant');
+}
+
+try {
+  // Index on clients.created_at for date filtering
+  db.exec('CREATE INDEX IF NOT EXISTS idx_clients_created_at ON clients(created_at)');
+  console.log('✓ Index clients.created_at créé');
+} catch (e) {
+  console.log('  Index created_at déjà existant');
+}
+
+try {
+  // Composite index on tracking fields for analytics queries
+  db.exec('CREATE INDEX IF NOT EXISTS idx_clients_tracking ON clients(mail_sent, rdv_pris, document_received, cancelled)');
+  console.log('✓ Index clients.tracking créé');
+} catch (e) {
+  console.log('  Index tracking déjà existant');
+}
+
+try {
+  // Index on leads.assigned_to
+  db.exec('CREATE INDEX IF NOT EXISTS idx_leads_assigned_to ON leads(assigned_to)');
+  console.log('✓ Index leads.assigned_to créé');
+} catch (e) {
+  console.log('  Index leads.assigned_to déjà existant');
+}
+
+try {
+  // Index on leads.created_at
+  db.exec('CREATE INDEX IF NOT EXISTS idx_leads_created_at ON leads(created_at)');
+  console.log('✓ Index leads.created_at créé');
+} catch (e) {
+  console.log('  Index leads.created_at déjà existant');
+}
+
+console.log('✅ Optimisation des performances terminée\n');
+
 module.exports = db;
