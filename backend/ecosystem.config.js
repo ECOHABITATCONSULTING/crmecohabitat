@@ -1,7 +1,7 @@
 module.exports = {
   apps: [{
     name: 'crm-backend',
-    script: './server.js',
+    script: './src/server.js',
     instances: 2,              // CHANGÉ: 2 instances pour zero-downtime
     exec_mode: 'cluster',      // CHANGÉ: cluster mode au lieu de fork
 
