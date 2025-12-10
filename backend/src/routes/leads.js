@@ -125,7 +125,7 @@ router.post('/', authenticateToken, (req, res) => {
 router.patch('/:id', authenticateToken, (req, res) => {
   try {
     const { id } = req.params;
-    const { first_name, last_name, email, phone, address, mobile_phone, status } = req.body;
+    const { first_name, last_name, email, phone, address, mobile_phone, status, city, postal_code, country } = req.body;
 
     const updates = [];
     const params = [];
@@ -137,6 +137,9 @@ router.patch('/:id', authenticateToken, (req, res) => {
     if (address !== undefined) { updates.push('address = ?'); params.push(address); }
     if (mobile_phone !== undefined) { updates.push('mobile_phone = ?'); params.push(mobile_phone); }
     if (status) { updates.push('status = ?'); params.push(status); }
+    if (city !== undefined) { updates.push('city = ?'); params.push(city); }
+    if (postal_code !== undefined) { updates.push('postal_code = ?'); params.push(postal_code); }
+    if (country !== undefined) { updates.push('country = ?'); params.push(country); }
 
     if (updates.length === 0) {
       return res.status(400).json({ error: 'Aucune donnée à mettre à jour' });
