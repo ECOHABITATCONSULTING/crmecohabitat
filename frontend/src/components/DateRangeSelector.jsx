@@ -7,6 +7,7 @@ const DateRangeSelector = ({ value, onChange }) => {
   const [endDate, setEndDate] = useState('');
 
   const presets = [
+    { value: 'all', label: 'Toutes périodes' },
     { value: 'day', label: "Aujourd'hui" },
     { value: 'week', label: '7 derniers jours' },
     { value: 'month', label: '30 derniers jours' },

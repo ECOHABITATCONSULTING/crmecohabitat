@@ -20,39 +20,42 @@ router.get('/', authenticateToken, (req, res) => {
     let dateConditionForJoin = '';
     let dateParams = [];
 
-    if (start_date && end_date) {
-      dateCondition = agentFilter ? 'AND created_at BETWEEN ? AND ?' : 'WHERE created_at BETWEEN ? AND ?';
-      dateConditionForJoin = 'AND clients.created_at BETWEEN ? AND ?';
-      dateParams = [start_date, end_date];
-    } else if (period) {
-      // Calculate date range based on period
-      const today = new Date();
-      let startDate;
+    // Skip date filtering if period is 'all'
+    if (period !== 'all') {
+      if (start_date && end_date) {
+        dateCondition = agentFilter ? 'AND created_at BETWEEN ? AND ?' : 'WHERE created_at BETWEEN ? AND ?';
+        dateConditionForJoin = 'AND clients.created_at BETWEEN ? AND ?';
+        dateParams = [start_date, end_date];
+      } else if (period) {
+        // Calculate date range based on period
+        const today = new Date();
+        let startDate;
 
-      switch(period) {
-        case 'day':
-          startDate = new Date(today.setHours(0, 0, 0, 0));
-          break;
-        case 'week':
-          startDate = new Date(today);
-          startDate.setDate(startDate.getDate() - 7);
-          break;
-        case 'month':
-          startDate = new Date(today);
-          startDate.setMonth(startDate.getMonth() - 1);
-          break;
-        case 'year':
-          startDate = new Date(today);
-          startDate.setFullYear(startDate.getFullYear() - 1);
-          break;
-        default:
-          startDate = new Date(today);
-          startDate.setMonth(startDate.getMonth() - 1);
+        switch(period) {
+          case 'day':
+            startDate = new Date(today.setHours(0, 0, 0, 0));
+            break;
+          case 'week':
+            startDate = new Date(today);
+            startDate.setDate(startDate.getDate() - 7);
+            break;
+          case 'month':
+            startDate = new Date(today);
+            startDate.setMonth(startDate.getMonth() - 1);
+            break;
+          case 'year':
+            startDate = new Date(today);
+            startDate.setFullYear(startDate.getFullYear() - 1);
+            break;
+          default:
+            startDate = new Date(today);
+            startDate.setMonth(startDate.getMonth() - 1);
+        }
+
+        dateCondition = agentFilter ? 'AND created_at >= ?' : 'WHERE created_at >= ?';
+        dateConditionForJoin = 'AND clients.created_at >= ?';
+        dateParams = [startDate.toISOString()];
       }
-
-      dateCondition = agentFilter ? 'AND created_at >= ?' : 'WHERE created_at >= ?';
-      dateConditionForJoin = 'AND clients.created_at >= ?';
-      dateParams = [startDate.toISOString()];
     }
 
     // Combine agent and date params for all queries
@@ -333,36 +336,39 @@ router.get('/agent/:agentId', authenticateToken, (req, res) => {
     let dateCondition = '';
     let dateParams = [];
 
-    if (start_date && end_date) {
-      dateCondition = 'AND clients.created_at BETWEEN ? AND ?';
-      dateParams = [start_date, end_date];
-    } else if (period) {
-      const today = new Date();
-      let startDate;
+    // Skip date filtering if period is 'all'
+    if (period !== 'all') {
+      if (start_date && end_date) {
+        dateCondition = 'AND clients.created_at BETWEEN ? AND ?';
+        dateParams = [start_date, end_date];
+      } else if (period) {
+        const today = new Date();
+        let startDate;
 
-      switch(period) {
-        case 'day':
-          startDate = new Date(today.setHours(0, 0, 0, 0));
-          break;
-        case 'week':
-          startDate = new Date(today);
-          startDate.setDate(startDate.getDate() - 7);
-          break;
-        case 'month':
-          startDate = new Date(today);
-          startDate.setMonth(startDate.getMonth() - 1);
-          break;
-        case 'year':
-          startDate = new Date(today);
-          startDate.setFullYear(startDate.getFullYear() - 1);
-          break;
-        default:
-          startDate = new Date(today);
-          startDate.setMonth(startDate.getMonth() - 1);
+        switch(period) {
+          case 'day':
+            startDate = new Date(today.setHours(0, 0, 0, 0));
+            break;
+          case 'week':
+            startDate = new Date(today);
+            startDate.setDate(startDate.getDate() - 7);
+            break;
+          case 'month':
+            startDate = new Date(today);
+            startDate.setMonth(startDate.getMonth() - 1);
+            break;
+          case 'year':
+            startDate = new Date(today);
+            startDate.setFullYear(startDate.getFullYear() - 1);
+            break;
+          default:
+            startDate = new Date(today);
+            startDate.setMonth(startDate.getMonth() - 1);
+        }
+
+        dateCondition = 'AND clients.created_at >= ?';
+        dateParams = [startDate.toISOString()];
       }
-
-      dateCondition = 'AND clients.created_at >= ?';
-      dateParams = [startDate.toISOString()];
     }
 
     // Combine params in correct order: dateParams first (for LEFT JOIN), then agentId (for WHERE)
@@ -375,6 +381,7 @@ router.get('/agent/:agentId', authenticateToken, (req, res) => {
         users.username,
         COUNT(DISTINCT clients.id) as total_clients,
         COUNT(DISTINCT CASE WHEN clients.mail_sent = 1 THEN clients.id END) as mail_sent,
+        COUNT(DISTINCT CASE WHEN clients.rdv_pris = 1 THEN clients.id END) as rdv_pris,
         COUNT(DISTINCT CASE WHEN clients.document_received = 1 THEN clients.id END) as document_received,
         COUNT(DISTINCT CASE WHEN clients.cancelled = 1 THEN clients.id END) as cancelled
       FROM users
@@ -396,26 +403,32 @@ router.get('/agent/:agentId', authenticateToken, (req, res) => {
 
     // Calculate trend data (clients created over time)
     let trendParams = [agentId];
-    if (start_date && end_date) {
-      trendParams.push(start_date, end_date);
-    } else if (period) {
-      const today = new Date();
-      let startDate;
-      switch(period) {
-        case 'day': startDate = new Date(today.setHours(0, 0, 0, 0)); break;
-        case 'week': startDate = new Date(today); startDate.setDate(startDate.getDate() - 7); break;
-        case 'month': startDate = new Date(today); startDate.setMonth(startDate.getMonth() - 1); break;
-        case 'year': startDate = new Date(today); startDate.setFullYear(startDate.getFullYear() - 1); break;
-        default: startDate = new Date(today); startDate.setMonth(startDate.getMonth() - 1);
+    let trendDateCondition = '';
+
+    if (period !== 'all') {
+      if (start_date && end_date) {
+        trendParams.push(start_date, end_date);
+        trendDateCondition = 'AND created_at BETWEEN ? AND ?';
+      } else if (period) {
+        const today = new Date();
+        let startDate;
+        switch(period) {
+          case 'day': startDate = new Date(today.setHours(0, 0, 0, 0)); break;
+          case 'week': startDate = new Date(today); startDate.setDate(startDate.getDate() - 7); break;
+          case 'month': startDate = new Date(today); startDate.setMonth(startDate.getMonth() - 1); break;
+          case 'year': startDate = new Date(today); startDate.setFullYear(startDate.getFullYear() - 1); break;
+          default: startDate = new Date(today); startDate.setMonth(startDate.getMonth() - 1);
+        }
+        trendParams.push(startDate.toISOString());
+        trendDateCondition = 'AND created_at >= ?';
       }
-      trendParams.push(startDate.toISOString());
     }
 
     const trendData = db.prepare(`
       SELECT DATE(created_at) as date, COUNT(*) as count
       FROM clients
       WHERE assigned_to = ?
-      ${start_date && end_date ? 'AND created_at BETWEEN ? AND ?' : (period ? 'AND created_at >= ?' : '')}
+      ${trendDateCondition}
       GROUP BY DATE(created_at)
       ORDER BY date ASC
     `).all(...trendParams);
@@ -443,6 +456,7 @@ router.get('/agent/:agentId', authenticateToken, (req, res) => {
 
     const total = agentData.total_clients || 0;
     const mailRate = total > 0 ? ((agentData.mail_sent / total) * 100).toFixed(1) : '0.0';
+    const rdvRate = total > 0 ? ((agentData.rdv_pris / total) * 100).toFixed(1) : '0.0';
     const documentRate = total > 0 ? ((agentData.document_received / total) * 100).toFixed(1) : '0.0';
     const cancellationRate = total > 0 ? ((agentData.cancelled / total) * 100).toFixed(1) : '0.0';
     const conversionRate = leadsCount > 0 ? ((total / leadsCount) * 100).toFixed(1) : '0.0';
@@ -454,6 +468,8 @@ router.get('/agent/:agentId', authenticateToken, (req, res) => {
         total_clients: total,
         mail_sent: agentData.mail_sent || 0,
         mail_sent_rate: parseFloat(mailRate),
+        rdv_pris: agentData.rdv_pris || 0,
+        rdv_rate: parseFloat(rdvRate),
         document_received: agentData.document_received || 0,
         document_received_rate: parseFloat(documentRate),
         cancelled: agentData.cancelled || 0,

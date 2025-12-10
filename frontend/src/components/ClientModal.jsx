@@ -113,18 +113,31 @@ const ClientModal = ({ client, onClose }) => {
     }
   };
 
-  const handleTrackingChange = (field) => {
+  const handleTrackingChange = async (field) => {
     // For agents: can only check (not uncheck)
     // For admins: can toggle
     if (user.role === 'agent' && clientInfo[field]) {
       return; // Agent cannot uncheck
     }
-    setClientInfo({
+
+    const newValue = !clientInfo[field];
+    const updatedInfo = {
       ...clientInfo,
-      [field]: !clientInfo[field]
-    });
-    if (!editMode) {
-      setEditMode(true);
+      [field]: newValue
+    };
+
+    setClientInfo(updatedInfo);
+
+    // Auto-save tracking changes immediately
+    try {
+      await api.patch(`/clients/${client.id}`, { [field]: newValue });
+      // Optionally refresh client data to sync with server
+      console.log(`✅ ${field} mis à jour: ${newValue}`);
+    } catch (error) {
+      console.error(`Erreur lors de la mise à jour de ${field}:`, error);
+      alert(`Erreur lors de la mise à jour du tracking`);
+      // Revert on error
+      setClientInfo(clientInfo);
     }
   };
 
