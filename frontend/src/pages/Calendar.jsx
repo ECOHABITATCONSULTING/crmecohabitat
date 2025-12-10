@@ -9,6 +9,7 @@ import frLocale from '@fullcalendar/core/locales/fr';
 import { Plus, User, Briefcase } from 'lucide-react';
 import styles from './Calendar.module.css';
 import AddAppointmentModal from '../components/AddAppointmentModal';
+import EditAppointmentModal from '../components/EditAppointmentModal';
 
 const Calendar = () => {
   const { user } = useAuth();
@@ -16,6 +17,8 @@ const Calendar = () => {
   const [appointments, setAppointments] = useState([]);
   const [events, setEvents] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [selectedAgent, setSelectedAgent] = useState('');
   const [selectedCommercial, setSelectedCommercial] = useState(''); // PHASE 3.3
   const [agents, setAgents] = useState([]);
@@ -39,10 +42,20 @@ const Calendar = () => {
         return agentMatch && commercialMatch;
       })
       .map(apt => {
-        // PHASE 3.2 - Build rich title with postal_code and commercial
-        const postalCode = apt.postal_code ? ` (${apt.postal_code})` : '';
-        const commercial = apt.commercial_name ? `\n👤 ${apt.commercial_name}` : '';
-        const title = `${apt.time} - ${apt.first_name} ${apt.last_name}${postalCode}${commercial}`;
+        // Build rich title with postal_code and commercial
+        const parts = [
+          `${apt.first_name} ${apt.last_name}`,
+        ];
+
+        if (apt.postal_code) {
+          parts.push(apt.postal_code);
+        }
+
+        if (apt.commercial_name) {
+          parts.push(`👤 ${apt.commercial_name}`);
+        }
+
+        const title = `${apt.time} - ${parts.join(' • ')}`;
 
         return {
           id: apt.id,
@@ -126,15 +139,12 @@ const Calendar = () => {
 
   const handleEventClick = (info) => {
     const event = info.event;
-    const props = event.extendedProps;
+    const appointmentId = parseInt(event.id);
+    const appointment = appointments.find(apt => apt.id === appointmentId);
 
-    // PHASE 3.2 - Add postal_code and commercial to popup
-    const postalInfo = props.postalCode ? `\nCode postal: ${props.postalCode}` : '';
-    const commercialInfo = props.commercialName ? `\nCommercial: ${props.commercialName}` : '';
-    const message = `Rendez-vous:\n\nDate: ${event.start.toLocaleDateString('fr-FR')}\nHeure: ${props.time}\nContact: ${props.leadName}${postalInfo}\nAgent: ${props.agent}${commercialInfo}`;
-
-    if (confirm(`${message}\n\nVoulez-vous supprimer ce rendez-vous ?`)) {
-      handleDeleteAppointment(event.id);
+    if (appointment) {
+      setSelectedAppointment(appointment);
+      setShowEditModal(true);
     }
   };
 
@@ -235,6 +245,26 @@ const Calendar = () => {
           onSuccess={() => {
             fetchAppointments();
             setShowAddModal(false);
+          }}
+        />
+      )}
+
+      {showEditModal && selectedAppointment && (
+        <EditAppointmentModal
+          appointment={selectedAppointment}
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedAppointment(null);
+          }}
+          onSuccess={() => {
+            fetchAppointments();
+            setShowEditModal(false);
+            setSelectedAppointment(null);
+          }}
+          onDelete={() => {
+            fetchAppointments();
+            setShowEditModal(false);
+            setSelectedAppointment(null);
           }}
         />
       )}
