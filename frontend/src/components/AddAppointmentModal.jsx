@@ -52,11 +52,16 @@ const AddAppointmentModal = ({ onClose, onSuccess }) => {
   const searchContacts = async () => {
     setSearching(true);
     try {
+      console.log('🔍 Recherche de:', searchQuery);
+
       // Search in both leads and clients
       const [leadsRes, clientsRes] = await Promise.all([
         api.get(`/leads?search=${searchQuery}`),
         api.get(`/clients?search=${searchQuery}`)
       ]);
+
+      console.log('📊 Leads trouvés:', leadsRes.data);
+      console.log('📊 Clients trouvés:', clientsRes.data);
 
       const leads = leadsRes.data.map(lead => ({
         ...lead,
@@ -70,9 +75,12 @@ const AddAppointmentModal = ({ onClose, onSuccess }) => {
         displayName: `${client.first_name} ${client.last_name} (Client)`
       }));
 
-      setSearchResults([...leads, ...clients]);
+      const results = [...leads, ...clients];
+      console.log('✅ Résultats combinés:', results.length, 'contacts');
+      setSearchResults(results);
     } catch (error) {
-      console.error('Erreur lors de la recherche:', error);
+      console.error('❌ Erreur lors de la recherche:', error);
+      console.error('Détails:', error.response?.data);
     } finally {
       setSearching(false);
     }
