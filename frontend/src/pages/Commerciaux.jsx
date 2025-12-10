@@ -4,6 +4,12 @@ import api from '../utils/api';
 import { Plus, Edit2, Trash2, RefreshCw, Briefcase } from 'lucide-react';
 import styles from './Commerciaux.module.css';
 
+const PRESET_COLORS = [
+  '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
+  '#10b981', '#14b8a6', '#06b6d4', '#3b82f6', '#6366f1',
+  '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'
+];
+
 const Commerciaux = () => {
   const { user } = useAuth();
   const [commerciaux, setCommerciaux] = useState([]);
@@ -134,14 +140,17 @@ const Commerciaux = () => {
 
             <div className={styles.formGroup}>
               <label className={styles.label}>Couleur</label>
-              <div className={styles.colorPicker}>
-                <input
-                  type="color"
-                  value={formData.color}
-                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                  className={styles.colorInput}
-                />
-                <span className={styles.colorValue}>{formData.color}</span>
+              <div className={styles.colorPalette}>
+                {PRESET_COLORS.map(color => (
+                  <button
+                    key={color}
+                    type="button"
+                    className={`${styles.colorButton} ${formData.color === color ? styles.colorButtonActive : ''}`}
+                    style={{ backgroundColor: color }}
+                    onClick={() => setFormData({ ...formData, color })}
+                    title={color}
+                  />
+                ))}
               </div>
             </div>
 

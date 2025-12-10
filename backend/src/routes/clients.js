@@ -21,12 +21,6 @@ router.get('/', authenticateToken, (req, res) => {
       params.push(req.user.id);
     }
 
-    // Filtrer par statut
-    if (status) {
-      conditions.push('status = ?');
-      params.push(status);
-    }
-
     // Recherche par nom, téléphone, email, ville
     if (search) {
       conditions.push('(first_name LIKE ? OR last_name LIKE ? OR phone LIKE ? OR email LIKE ? OR city LIKE ?)');
@@ -165,31 +159,6 @@ router.patch('/:id', authenticateToken, (req, res) => {
     }
     if (landline_phone !== undefined) { updates.push('landline_phone = ?'); params.push(landline_phone); }
     if (mobile_phone !== undefined) { updates.push('mobile_phone = ?'); params.push(mobile_phone); }
-
-    // Auto-update status based on tracking checkboxes (PHASE 2.4 - Ajout rdv_pris)
-    if (cancelled !== undefined || document_received !== undefined || rdv_pris !== undefined || mail_sent !== undefined) {
-      // Récupérer l'état actuel du client pour déterminer le nouveau statut
-      const currentClient = db.prepare('SELECT mail_sent, document_received, rdv_pris, cancelled FROM clients WHERE id = ?').get(id);
-
-      const finalCancelled = cancelled !== undefined ? cancelled : currentClient.cancelled;
-      const finalDocumentReceived = document_received !== undefined ? document_received : currentClient.document_received;
-      const finalRdvPris = rdv_pris !== undefined ? rdv_pris : currentClient.rdv_pris;
-      const finalMailSent = mail_sent !== undefined ? mail_sent : currentClient.mail_sent;
-
-      let newStatus = 'nouveau';
-      if (finalCancelled) {
-        newStatus = 'annule';
-      } else if (finalDocumentReceived) {
-        newStatus = 'documents_recus';
-      } else if (finalRdvPris) {
-        newStatus = 'rdv_pris';
-      } else if (finalMailSent) {
-        newStatus = 'mail_envoye';
-      }
-
-      updates.push('status = ?');
-      params.push(newStatus);
-    }
 
     if (updates.length === 0) {
       return res.status(400).json({ error: 'Aucune donnée à mettre à jour' });
