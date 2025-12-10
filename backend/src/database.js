@@ -8,6 +8,14 @@ const dbPath = process.env.DATABASE_PATH
   : path.join(__dirname, '../database.db');
 const db = new Database(dbPath);
 
+// Configuration optimale SQLite pour production
+db.pragma('journal_mode = WAL');      // Write-Ahead Logging (déjà actif)
+db.pragma('synchronous = NORMAL');     // Balance entre performance et sécurité
+db.pragma('cache_size = -64000');      // 64MB cache pour améliorer perf lecture
+db.pragma('temp_store = MEMORY');      // Tables temporaires en RAM
+db.pragma('busy_timeout = 5000');      // Attendre 5s en cas de lock
+console.log('✓ SQLite configuré: WAL mode, cache 64MB, busy timeout 5s');
+
 // Créer les tables
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
