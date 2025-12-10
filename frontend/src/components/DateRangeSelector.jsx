@@ -46,7 +46,7 @@ const DateRangeSelector = ({ value, onChange }) => {
   return (
     <div className={styles.container}>
       <select
-        value={value?.period || 'all'}
+        value={value?.period || 'month'}
         onChange={handlePresetChange}
         className={styles.select}
       >
