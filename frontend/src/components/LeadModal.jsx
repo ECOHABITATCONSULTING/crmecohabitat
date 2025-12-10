@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { X, MessageSquare, Calendar as CalendarIcon, Send, User, Save } from 'lucide-react';
+import { X, MessageSquare, Calendar as CalendarIcon, Send, User, Save, Briefcase } from 'lucide-react';
 import styles from './LeadModal.module.css';
 
 const LeadModal = ({ lead, onClose }) => {
   const [comments, setComments] = useState([]);
   const [appointments, setAppointments] = useState([]);
+  const [commerciaux, setCommerciaux] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [newAppointment, setNewAppointment] = useState({
     title: '',
     date: '',
-    time: ''
+    time: '',
+    commercial_id: null
   });
   const [activeTab, setActiveTab] = useState('info');
   const [editMode, setEditMode] = useState(false);
@@ -29,7 +31,17 @@ const LeadModal = ({ lead, onClose }) => {
   useEffect(() => {
     fetchComments();
     fetchAppointments();
+    fetchCommerciaux();
   }, [lead]);
+
+  const fetchCommerciaux = async () => {
+    try {
+      const response = await api.get('/commerciaux');
+      setCommerciaux(response.data);
+    } catch (error) {
+      console.error('Erreur lors du chargement des commerciaux:', error);
+    }
+  };
 
   const fetchComments = async () => {
     try {
@@ -74,7 +86,7 @@ const LeadModal = ({ lead, onClose }) => {
         lead_id: lead.id,
         ...newAppointment
       });
-      setNewAppointment({ title: '', date: '', time: '' });
+      setNewAppointment({ title: '', date: '', time: '', commercial_id: null });
       fetchAppointments();
     } catch (error) {
       alert('Erreur lors de l\'ajout du RDV');
@@ -396,6 +408,7 @@ const LeadModal = ({ lead, onClose }) => {
                   onChange={(e) => setNewAppointment({ ...newAppointment, title: e.target.value })}
                   placeholder="Titre du RDV"
                   className={styles.input}
+                  required
                 />
                 <div className={styles.row}>
                   <input
@@ -403,13 +416,32 @@ const LeadModal = ({ lead, onClose }) => {
                     value={newAppointment.date}
                     onChange={(e) => setNewAppointment({ ...newAppointment, date: e.target.value })}
                     className={styles.input}
+                    required
                   />
                   <input
                     type="time"
                     value={newAppointment.time}
                     onChange={(e) => setNewAppointment({ ...newAppointment, time: e.target.value })}
                     className={styles.input}
+                    required
                   />
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    <Briefcase size={16} /> Commercial (optionnel)
+                  </label>
+                  <select
+                    value={newAppointment.commercial_id || ''}
+                    onChange={(e) => setNewAppointment({ ...newAppointment, commercial_id: e.target.value ? parseInt(e.target.value) : null })}
+                    className={styles.input}
+                  >
+                    <option value="">Aucun commercial</option>
+                    {commerciaux.map(commercial => (
+                      <option key={commercial.id} value={commercial.id}>
+                        {commercial.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <button type="submit" className={styles.submitBtn}>
                   <CalendarIcon size={16} /> Créer le RDV
