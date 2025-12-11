@@ -94,6 +94,7 @@ const ImportModal = ({ onClose, onSuccess }) => {
                   <li><strong>last_name</strong> : Nom</li>
                   <li><strong>email</strong> : Email</li>
                   <li><strong>phone</strong> : Téléphone</li>
+                  <li><strong>postal_code</strong> : Code postal</li>
                 </ul>
                 <p className={styles.description}>
                   <strong>Champs optionnels :</strong>
@@ -102,7 +103,6 @@ const ImportModal = ({ onClose, onSuccess }) => {
                   <li><strong>mobile_phone</strong> : Téléphone mobile</li>
                   <li><strong>address</strong> : Adresse complète</li>
                   <li><strong>city</strong> : Ville</li>
-                  <li><strong>postal_code</strong> : Code postal</li>
                   <li><strong>country</strong> : Pays</li>
                 </ul>
                 <p className={styles.note}>
