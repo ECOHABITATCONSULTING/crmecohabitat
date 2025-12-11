@@ -24,6 +24,11 @@ router.get('/', authenticateToken, (req, res) => {
       conditions.push('assigned_to = ?');
       params.push(req.user.id);
     }
+    // Si admin ET filtre "À attribuer" (assigned_to = 'null')
+    else if (req.user.role === 'admin' && assigned_to === 'null') {
+      conditions.push('assigned_to IS NULL');
+      // Pas de params.push car IS NULL n'a pas de paramètre
+    }
     // Si admin ET filtre par agent spécifié, filtrer par cet agent
     else if (req.user.role === 'admin' && assigned_to) {
       conditions.push('assigned_to = ?');
@@ -252,8 +257,8 @@ router.post('/import', authenticateToken, requireAdmin, upload.single('file'), (
           // Fusionner avec les données originales (priorité aux normalisées)
           const finalData = { ...data, ...normalizedData };
 
-          // Vérifier que les 4 colonnes OBLIGATOIRES existent
-          const requiredFields = ['first_name', 'last_name', 'email', 'phone'];
+          // Vérifier que les 5 colonnes OBLIGATOIRES existent (ajout code postal)
+          const requiredFields = ['first_name', 'last_name', 'email', 'phone', 'postal_code'];
           const missingFields = requiredFields.filter(field => !finalData[field] || finalData[field].trim() === '');
 
           if (missingFields.length > 0) {
@@ -275,7 +280,7 @@ router.post('/import', authenticateToken, requireAdmin, upload.single('file'), (
             (finalData.mobile_phone ? finalData.mobile_phone.trim() : null) || null,
             (finalData.address ? finalData.address.trim() : null) || null,
             (finalData.city ? finalData.city.trim() : null) || null,
-            (finalData.postal_code ? finalData.postal_code.trim() : null) || null,
+            finalData.postal_code.trim(), // Obligatoire maintenant
             (finalData.country ? finalData.country.trim() : null) || null
           );
           results.push(result.lastInsertRowid);

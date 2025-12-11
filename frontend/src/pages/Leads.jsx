@@ -267,6 +267,7 @@ const Leads = () => {
               className={styles.statusFilter}
             >
               <option value="">Tous les agents</option>
+              <option value="null">À attribuer</option>
               {agents.map(agent => (
                 <option key={agent.id} value={agent.id}>
                   {agent.username}
