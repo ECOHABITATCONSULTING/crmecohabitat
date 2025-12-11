@@ -49,7 +49,7 @@ const Import = () => {
   };
 
   const downloadTemplate = () => {
-    const csvContent = 'first_name,last_name,email,phone\nJean,Dupont,jean.dupont@email.com,0601020304\nMarie,Martin,marie.martin@email.com,0612345678';
+    const csvContent = 'first_name,last_name,email,phone,postal_code,mobile_phone,address,city,country\nJean,Dupont,jean.dupont@email.com,0601020304,75001,0612345678,"12 rue de la Paix",Paris,France\nMarie,Martin,marie.martin@email.com,0698765432,69001,,"45 avenue des Champs",Lyon,France';
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -77,12 +77,20 @@ const Import = () => {
             <h2>Format du fichier</h2>
           </div>
           <div className={styles.cardContent}>
-            <p>Votre fichier CSV doit contenir les colonnes suivantes :</p>
+            <p><strong>Champs obligatoires :</strong></p>
             <ul className={styles.list}>
-              <li><strong>first_name</strong> (obligatoire) - Prénom du lead</li>
-              <li><strong>last_name</strong> (obligatoire) - Nom du lead</li>
-              <li><strong>email</strong> (optionnel) - Email du lead</li>
-              <li><strong>phone</strong> (optionnel) - Téléphone du lead</li>
+              <li><strong>first_name</strong> - Prénom du lead</li>
+              <li><strong>last_name</strong> - Nom du lead</li>
+              <li><strong>email</strong> - Email du lead</li>
+              <li><strong>phone</strong> - Téléphone du lead</li>
+              <li><strong>postal_code</strong> - Code postal</li>
+            </ul>
+            <p><strong>Champs optionnels :</strong></p>
+            <ul className={styles.list}>
+              <li><strong>mobile_phone</strong> - Téléphone mobile</li>
+              <li><strong>address</strong> - Adresse complète</li>
+              <li><strong>city</strong> - Ville</li>
+              <li><strong>country</strong> - Pays</li>
             </ul>
             <button onClick={downloadTemplate} className={styles.downloadBtn}>
               <Download size={16} /> Télécharger le modèle
