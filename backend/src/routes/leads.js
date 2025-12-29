@@ -105,11 +105,11 @@ router.post('/', authenticateToken, (req, res) => {
   try {
     const { first_name, last_name, email, phone, address, mobile_phone } = req.body;
 
-    if (!first_name || !last_name) {
-      return res.status(400).json({ error: 'Nom et prénom requis' });
+    if (!first_name) {
+      return res.status(400).json({ error: 'Prénom requis' });
     }
 
-    const result = db.prepare('INSERT INTO leads (first_name, last_name, email, phone, address, mobile_phone) VALUES (?, ?, ?, ?, ?, ?)').run(first_name, last_name, email, phone, address, mobile_phone);
+    const result = db.prepare('INSERT INTO leads (first_name, last_name, email, phone, address, mobile_phone) VALUES (?, ?, ?, ?, ?, ?)').run(first_name, last_name || null, email, phone, address, mobile_phone);
 
     res.status(201).json({
       id: result.lastInsertRowid,
@@ -257,8 +257,8 @@ router.post('/import', authenticateToken, requireAdmin, upload.single('file'), (
           // Fusionner avec les données originales (priorité aux normalisées)
           const finalData = { ...data, ...normalizedData };
 
-          // Vérifier que les 5 colonnes OBLIGATOIRES existent (ajout code postal)
-          const requiredFields = ['first_name', 'last_name', 'email', 'phone', 'postal_code'];
+          // Vérifier que les 4 colonnes OBLIGATOIRES existent (last_name maintenant optionnel)
+          const requiredFields = ['first_name', 'email', 'phone', 'postal_code'];
           const missingFields = requiredFields.filter(field => !finalData[field] || finalData[field].trim() === '');
 
           if (missingFields.length > 0) {
@@ -266,7 +266,7 @@ router.post('/import', authenticateToken, requireAdmin, upload.single('file'), (
             return;
           }
 
-          // Insérer avec TOUS les champs disponibles
+          // Insérer avec TOUS les champs disponibles (last_name optionnel)
           const result = db.prepare(`
             INSERT INTO leads (
               first_name, last_name, email, phone,
@@ -274,13 +274,13 @@ router.post('/import', authenticateToken, requireAdmin, upload.single('file'), (
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).run(
             finalData.first_name.trim(),
-            finalData.last_name.trim(),
+            (finalData.last_name && finalData.last_name.trim()) || null,
             finalData.email.trim(),
             finalData.phone.trim(),
             (finalData.mobile_phone ? finalData.mobile_phone.trim() : null) || null,
             (finalData.address ? finalData.address.trim() : null) || null,
             (finalData.city ? finalData.city.trim() : null) || null,
-            finalData.postal_code.trim(), // Obligatoire maintenant
+            finalData.postal_code.trim(), // Obligatoire
             (finalData.country ? finalData.country.trim() : null) || null
           );
           results.push(result.lastInsertRowid);

@@ -374,4 +374,62 @@ try {
 
 console.log('✅ Optimisation des performances terminée\n');
 
+// ============================================================================
+// MIGRATION - Rendre last_name optionnel dans la table leads
+// ============================================================================
+console.log('🔄 Migration: Rendre last_name optionnel dans leads...');
+
+try {
+  // Vérifier si la migration est nécessaire en testant la contrainte
+  const tableInfo = db.pragma('table_info(leads)');
+  const lastNameColumn = tableInfo.find(col => col.name === 'last_name');
+
+  if (lastNameColumn && lastNameColumn.notnull === 1) {
+    console.log('  Recréation de la table leads avec last_name optionnel...');
+
+    // SQLite ne permet pas ALTER COLUMN, donc on doit recréer la table
+    db.exec(`
+      -- Créer une table temporaire avec le nouveau schéma
+      CREATE TABLE leads_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        first_name TEXT NOT NULL,
+        last_name TEXT,
+        email TEXT,
+        phone TEXT,
+        status TEXT NOT NULL DEFAULT 'nouveau' CHECK(status IN ('nouveau', 'nrp', 'a_rappeler', 'pas_interesse', 'trash')),
+        assigned_to INTEGER,
+        postal_code TEXT,
+        city TEXT,
+        country TEXT,
+        mobile_phone TEXT,
+        address TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (assigned_to) REFERENCES users(id)
+      );
+
+      -- Copier toutes les données existantes
+      INSERT INTO leads_new SELECT * FROM leads;
+
+      -- Supprimer l'ancienne table
+      DROP TABLE leads;
+
+      -- Renommer la nouvelle table
+      ALTER TABLE leads_new RENAME TO leads;
+
+      -- Recréer tous les index
+      CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status);
+      CREATE INDEX IF NOT EXISTS idx_leads_assigned ON leads(assigned_to);
+      CREATE INDEX IF NOT EXISTS idx_leads_assigned_to ON leads(assigned_to);
+      CREATE INDEX IF NOT EXISTS idx_leads_created_at ON leads(created_at);
+    `);
+
+    console.log('✓ Migration réussie: last_name est maintenant optionnel dans leads');
+  } else {
+    console.log('✓ Migration déjà effectuée: last_name est déjà optionnel');
+  }
+} catch (e) {
+  console.log('⚠️  Erreur migration last_name:', e.message);
+}
+
 module.exports = db;

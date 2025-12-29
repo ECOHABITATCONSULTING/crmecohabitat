@@ -21,8 +21,8 @@ const ImportModal = ({ onClose, onSuccess }) => {
   };
 
   const handleDownloadTemplate = () => {
-    // PHASE 3.10 - Template CSV étendu avec tous les champs
-    const csvContent = 'first_name,last_name,email,phone,mobile_phone,address,city,postal_code,country\nJean,Dupont,jean.dupont@email.com,0601020304,0612345678,"12 rue de la Paix",Paris,75001,France\nMarie,Martin,marie.martin@email.com,0698765432,,"45 avenue des Champs",Lyon,69001,';
+    // Template CSV avec last_name optionnel (exemple avec et sans nom de famille)
+    const csvContent = 'first_name,last_name,email,phone,mobile_phone,address,city,postal_code,country\nJean,Dupont,jean.dupont@email.com,0601020304,0612345678,"12 rue de la Paix",Paris,75001,France\nMarie,,marie.martin@email.com,0698765432,,"45 avenue des Champs",Lyon,69001,France\nPierre Martin,,pierre.martin@email.com,0645678901,,"7 boulevard Victor Hugo",Marseille,13001,France';
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -91,7 +91,6 @@ const ImportModal = ({ onClose, onSuccess }) => {
                 </p>
                 <ul className={styles.instructions}>
                   <li><strong>first_name</strong> : Prénom</li>
-                  <li><strong>last_name</strong> : Nom</li>
                   <li><strong>email</strong> : Email</li>
                   <li><strong>phone</strong> : Téléphone</li>
                   <li><strong>postal_code</strong> : Code postal</li>
@@ -100,6 +99,7 @@ const ImportModal = ({ onClose, onSuccess }) => {
                   <strong>Champs optionnels :</strong>
                 </p>
                 <ul className={styles.instructions}>
+                  <li><strong>last_name</strong> : Nom de famille</li>
                   <li><strong>mobile_phone</strong> : Téléphone mobile</li>
                   <li><strong>address</strong> : Adresse complète</li>
                   <li><strong>city</strong> : Ville</li>
